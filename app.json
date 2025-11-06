@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "scheme": "learntogether",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -16,17 +17,41 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.learntogether.app"
+      "bundleIdentifier": "com.learntogether.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to upload profile pictures and study materials.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photos to upload study materials and profile pictures."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.learntogether.app"
+      "package": "com.learntogether.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": false
+          },
+          "android": {
+            "newArchEnabled": false
+          }
+        }
+      ]
+    ],
+    "newArchEnabled": false
   }
 }
