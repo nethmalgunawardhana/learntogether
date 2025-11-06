@@ -12,6 +12,7 @@ import StudyGroupsScreen from '../screens/main/StudyGroupsScreen';
 import FavouritesScreen from '../screens/main/FavouritesScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import DetailsScreen from '../screens/main/DetailsScreen';
+import DebugScreen from '../screens/main/DebugScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -30,6 +31,27 @@ const HomeStack = () => {
         component={DetailsScreen}
         options={{
           headerTitle: 'Study Material',
+          headerBackTitle: 'Back',
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+// Profile Stack
+const ProfileStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Debug"
+        component={DebugScreen}
+        options={{
+          headerTitle: 'Developer Tools',
           headerBackTitle: 'Back',
         }}
       />
@@ -114,8 +136,8 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
+        component={ProfileStack}
+        options={{ title: 'Profile', headerShown: false }}
       />
     </Tab.Navigator>
   );

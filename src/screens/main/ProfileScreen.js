@@ -14,7 +14,7 @@ import { toggleTheme } from '../../store/slices/themeSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
 import { getInitials } from '../../utils/helpers';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
@@ -137,6 +137,19 @@ const ProfileScreen = () => {
             },
             { icon: 'bell', label: 'Notifications', onPress: () => {} },
             { icon: 'globe', label: 'Language', onPress: () => {} },
+          ]}
+        />
+
+        {/* Developer Tools Section */}
+        <ProfileSection
+          title="DEVELOPER"
+          items={[
+            {
+              icon: 'settings',
+              label: 'Developer Tools',
+              color: COLORS.accent,
+              onPress: () => navigation.navigate('Debug'),
+            },
           ]}
         />
 
