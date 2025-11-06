@@ -1,5 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { getStudyMaterials, getStudyMaterialById } from '../../services/firestoreService';
+import {
+  getStudyMaterials,
+  getStudyMaterialById,
+  addStudyMaterial,
+  updateStudyMaterial,
+  deleteStudyMaterial,
+} from '../../services/firestoreService';
 
 // Async thunks
 export const fetchMaterials = createAsyncThunk(
@@ -26,6 +32,42 @@ export const fetchMaterialById = createAsyncThunk(
   }
 );
 
+export const createMaterial = createAsyncThunk(
+  'materials/createMaterial',
+  async (materialData, { rejectWithValue }) => {
+    try {
+      const materialId = await addStudyMaterial(materialData);
+      return { id: materialId, ...materialData };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const editMaterial = createAsyncThunk(
+  'materials/editMaterial',
+  async ({ materialId, updates }, { rejectWithValue }) => {
+    try {
+      await updateStudyMaterial(materialId, updates);
+      return { materialId, updates };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const removeMaterial = createAsyncThunk(
+  'materials/removeMaterial',
+  async (materialId, { rejectWithValue }) => {
+    try {
+      await deleteStudyMaterial(materialId);
+      return materialId;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   materials: [],
@@ -44,6 +86,21 @@ const materialsSlice = createSlice({
     },
     clearSelectedMaterial: (state) => {
       state.selectedMaterial = null;
+    },
+    setMaterials: (state, action) => {
+      state.materials = action.payload;
+    },
+    addMaterialToList: (state, action) => {
+      state.materials.unshift(action.payload);
+    },
+    updateMaterialInList: (state, action) => {
+      const index = state.materials.findIndex(m => m.id === action.payload.id);
+      if (index !== -1) {
+        state.materials[index] = { ...state.materials[index], ...action.payload };
+      }
+    },
+    removeMaterialFromList: (state, action) => {
+      state.materials = state.materials.filter(m => m.id !== action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -75,9 +132,54 @@ const materialsSlice = createSlice({
       .addCase(fetchMaterialById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Create material
+      .addCase(createMaterial.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createMaterial.fulfilled, (state, action) => {
+        state.loading = false;
+        state.materials.unshift(action.payload);
+        state.error = null;
+      })
+      .addCase(createMaterial.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Edit material
+      .addCase(editMaterial.fulfilled, (state, action) => {
+        const { materialId, updates } = action.payload;
+        const index = state.materials.findIndex(m => m.id === materialId);
+        if (index !== -1) {
+          state.materials[index] = { ...state.materials[index], ...updates };
+        }
+        if (state.selectedMaterial?.id === materialId) {
+          state.selectedMaterial = { ...state.selectedMaterial, ...updates };
+        }
+      })
+      .addCase(editMaterial.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+      // Remove material
+      .addCase(removeMaterial.fulfilled, (state, action) => {
+        state.materials = state.materials.filter(m => m.id !== action.payload);
+        if (state.selectedMaterial?.id === action.payload) {
+          state.selectedMaterial = null;
+        }
+      })
+      .addCase(removeMaterial.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
 
-export const { clearError, clearSelectedMaterial } = materialsSlice.actions;
+export const {
+  clearError,
+  clearSelectedMaterial,
+  setMaterials,
+  addMaterialToList,
+  updateMaterialInList,
+  removeMaterialFromList,
+} = materialsSlice.actions;
 export default materialsSlice.reducer;
