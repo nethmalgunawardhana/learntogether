@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native
 import { useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
-import { getUserStudyGroups } from '../../services/firestoreService';
+import { getUserStudyGroups } from '../../services/apiService';
 
 const StudyGroupsScreen = () => {
   const { userData } = useSelector((state) => state.auth);
