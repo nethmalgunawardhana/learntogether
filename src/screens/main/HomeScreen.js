@@ -2,148 +2,226 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
-  RefreshControl,
-  Modal,
   ScrollView,
-  Alert,
+  Image,
+  Dimensions,
+  ActivityIndicator,
+  FlatList,
+  Modal,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
-import { fetchMaterials } from '../../store/slices/materialsSlice';
-import { toggleTheme } from '../../store/slices/themeSlice';
-import { logout } from '../../store/slices/authSlice';
-import { COLORS, SIZES, SHADOWS } from '../../constants';
-import { formatDate } from '../../utils/helpers';
+import { searchBooks, getBooksBySubject } from '../../services/apiService';
+import { COLORS, SIZES } from '../../constants';
 import SettingsScreen from './SettingsScreen';
 
+const { width } = Dimensions.get('window');
+
 const HomeScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
-  const { materials, loading } = useSelector((state) => state.materials);
   const { userData } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Arts & Humanities');
   const [settingsVisible, setSettingsVisible] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchMaterials());
-  }, [dispatch]);
+  const categories = ['3D Design', 'Arts & Humanities', 'Website Design'];
+  const popularCategories = ['All', 'Graphic Design', 'Web Design', 'Arts & H'];
 
-  const handleRefresh = () => {
-    dispatch(fetchMaterials());
+  useEffect(() => {
+    loadMaterials();
+  }, [selectedCategory]);
+
+  const loadMaterials = async () => {
+    try {
+      setLoading(true);
+      let results;
+      
+      if (selectedCategory === 'All') {
+        results = await searchBooks('programming', 12);
+      } else if (selectedCategory === 'Graphic Design' || selectedCategory === '3D Design') {
+        results = await getBooksBySubject('design', 12);
+      } else if (selectedCategory === 'Web Design' || selectedCategory === 'Website Design') {
+        results = await getBooksBySubject('web_development', 12);
+      } else if (selectedCategory === 'Arts & H' || selectedCategory === 'Arts & Humanities') {
+        results = await getBooksBySubject('arts', 12);
+      } else {
+        results = await searchBooks('education', 12);
+      }
+      
+      setMaterials(results);
+    } catch (error) {
+      console.error('Error loading study materials:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    try {
+      setLoading(true);
+      const results = await searchBooks(searchQuery, 12);
+      setMaterials(results);
+    } catch (error) {
+      console.error('Error searching study materials:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderMaterialCard = ({ item }) => (
     <TouchableOpacity
-      style={[
-        styles.card,
-        {
-          backgroundColor: themeColors.card,
-          borderColor: themeColors.border,
-        },
-      ]}
-      onPress={() => navigation.navigate('Details', { materialId: item.id })}
+      style={styles.materialCard}
+      onPress={() => navigation.navigate('Details', { material: item })}
     >
-      <View style={styles.cardHeader}>
-        <View
-          style={[styles.iconContainer, { backgroundColor: `${COLORS.primary}15` }]}
-        >
-          <Feather name="book" size={24} color={COLORS.primary} />
-        </View>
-        <View style={styles.cardInfo}>
-          <Text style={[styles.cardTitle, { color: themeColors.text }]}>
-            {item.title}
-          </Text>
-          <Text style={[styles.cardSubject, { color: COLORS.primary }]}>
-            {item.subject}
-          </Text>
-        </View>
-        <Feather name="chevron-right" size={20} color={themeColors.textSecondary} />
-      </View>
-      <Text
-        style={[styles.cardDescription, { color: themeColors.textSecondary }]}
-        numberOfLines={2}
-      >
-        {item.description}
-      </Text>
-      <View style={styles.cardFooter}>
-        <View style={styles.cardStats}>
-          <Feather name="heart" size={14} color={themeColors.textSecondary} />
-          <Text style={[styles.cardStatText, { color: themeColors.textSecondary }]}>
-            {item.likes || 0}
-          </Text>
-          <Feather
-            name="download"
-            size={14}
-            color={themeColors.textSecondary}
-            style={{ marginLeft: 12 }}
-          />
-          <Text style={[styles.cardStatText, { color: themeColors.textSecondary }]}>
-            {item.downloads || 0}
-          </Text>
-        </View>
-        <Text style={[styles.cardDate, { color: themeColors.textSecondary }]}>
-          {formatDate(item.createdAt)}
-        </Text>
-      </View>
+      <Image
+        source={{ uri: item.coverUrl }}
+        style={styles.materialCover}
+        resizeMode="cover"
+      />
     </TouchableOpacity>
   );
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: themeColors.card }]}>
-        <View>
-          <Text style={[styles.greeting, { color: themeColors.textSecondary }]}>
-            Welcome back,
-          </Text>
-          <Text style={[styles.username, { color: themeColors.text }]}>
-            {userData?.displayName || 'Student'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => setSettingsVisible(true)}
-        >
-          <Feather name="settings" size={24} color={COLORS.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Materials List */}
-      <FlatList
-        data={materials}
-        renderItem={renderMaterialCard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={handleRefresh}
-            tintColor={COLORS.primary}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Feather name="inbox" size={64} color={themeColors.textSecondary} />
-            <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>
-              No study materials yet
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={[styles.greeting, { color: COLORS.primary }]}>
+              Hi, {userData?.displayName?.split(' ')[0] || 'Stylish Racoon'}
             </Text>
-            <Text
-              style={[styles.emptySubtext, { color: themeColors.textSecondary }]}
-            >
-              Start by adding your first study material
+            <Text style={[styles.subGreeting, { color: themeColors.textSecondary }]}>
+              What Would you like to learn Today?
+            </Text>
+            <Text style={[styles.subGreeting, { color: themeColors.textSecondary }]}>
+              Search Below
             </Text>
           </View>
-        }
-      />
+          <View style={styles.headerIcons}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => {}}
+            >
+              <Feather name="bell" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => setSettingsVisible(true)}
+            >
+              <Feather name="settings" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      {/* Settings Modal */}
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={[styles.searchBar, { backgroundColor: themeColors.card }]}>
+            <Feather name="search" size={20} color={themeColors.textSecondary} />
+            <TextInput
+              style={[styles.searchInput, { color: themeColors.text }]}
+              placeholder="Search for..."
+              placeholderTextColor={themeColors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+            />
+          </View>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={handleSearch}
+          >
+            <Feather name="sliders" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Promo Banner */}
+        <View style={styles.promoBanner}>
+          <View style={styles.promoContent}>
+            <Text style={styles.promoTag}>50% OFF*</Text>
+            <Text style={styles.promoTitle}>Today's promo</Text>
+            <Text style={styles.promoDescription}>
+              Get a Discount for Every{'\n'}
+              Course Order only Valid for{'\n'}
+              3 days!
+            </Text>
+          </View>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop' }}
+            style={styles.promoImage}
+            resizeMode="cover"
+          />
+        </View>
+
+        {/* Popular Study Materials Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>
+            Popular Study Materials
+          </Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Chips */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+        >
+          {popularCategories.map((category, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.filterChip,
+                selectedCategory === category && styles.filterChipActive,
+              ]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  selectedCategory === category && styles.filterTextActive,
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Books Grid */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={materials}
+            renderItem={renderMaterialCard}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.materialRow}
+            scrollEnabled={false}
+            contentContainerStyle={styles.materialsGrid}
+          />
+        )}
+      </ScrollView>
+
+      {/* Settings Drawer Modal */}
       <Modal
         visible={settingsVisible}
         animationType="slide"
+        presentationStyle="pageSheet"
         onRequestClose={() => setSettingsVisible(false)}
       >
         <SettingsScreen onClose={() => setSettingsVisible(false)} />
@@ -159,90 +237,148 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: SIZES.padding * 1.5,
-    ...SHADOWS.light,
+    alignItems: 'flex-start',
+    padding: SIZES.padding,
+    paddingTop: 50,
   },
   greeting: {
-    fontSize: SIZES.body,
-  },
-  username: {
-    fontSize: SIZES.h4,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  listContent: {
-    padding: SIZES.padding,
-  },
-  card: {
-    borderRadius: SIZES.radius,
-    padding: SIZES.padding,
-    marginBottom: SIZES.margin,
-    borderWidth: 1,
-    ...SHADOWS.light,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: SIZES.radius,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: SIZES.h6,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  cardSubject: {
-    fontSize: SIZES.caption,
-    fontWeight: '600',
+  subGreeting: {
+    fontSize: 12,
+    lineHeight: 18,
   },
-  cardDescription: {
-    fontSize: SIZES.body,
-    lineHeight: 20,
-    marginBottom: 12,
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  cardFooter: {
+  iconButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: SIZES.padding,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+  },
+  filterButton: {
+    backgroundColor: COLORS.primary,
+    padding: 14,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoBanner: {
+    backgroundColor: '#3D3581',
+    marginHorizontal: SIZES.padding,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  promoContent: {
+    flex: 1,
+  },
+  promoTag: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  promoTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  promoDescription: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  promoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: SIZES.padding,
+    marginBottom: 16,
   },
-  cardStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  cardStatText: {
-    fontSize: SIZES.caption,
-    marginLeft: 4,
+  seeAllText: {
+    color: COLORS.primary,
+    fontSize: 14,
   },
-  cardDate: {
-    fontSize: SIZES.caption,
+  filterScroll: {
+    paddingLeft: SIZES.padding,
+    marginBottom: 16,
   },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+  filterChip: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    marginRight: 12,
   },
-  emptyText: {
-    fontSize: SIZES.h6,
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterTextActive: {
+    color: 'white',
     fontWeight: '600',
-    marginTop: 16,
   },
-  emptySubtext: {
-    fontSize: SIZES.body,
-    marginTop: 8,
+  materialsGrid: {
+    paddingHorizontal: SIZES.padding,
+    paddingBottom: 20,
+  },
+  materialRow: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  materialCard: {
+    width: (width - SIZES.padding * 2 - 16) / 2,
+    height: 160,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+  },
+  materialCover: {
+    width: '100%',
+    height: '100%',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
   },
 });
 
