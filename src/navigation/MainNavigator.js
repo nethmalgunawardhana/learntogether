@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Feather } from '@expo/vector-icons';
@@ -12,6 +13,7 @@ import StudyGroupsScreen from '../screens/main/StudyGroupsScreen';
 import FavouritesScreen from '../screens/main/FavouritesScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import DetailsScreen from '../screens/main/DetailsScreen';
+import GroupChatScreen from '../screens/main/GroupChatScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -33,7 +35,84 @@ const HomeStack = () => {
           headerBackTitle: 'Back',
         }}
       />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          headerTitle: 'Profile',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack.Navigator>
+  );
+};
+
+// Study Groups Stack
+const StudyGroupsStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="StudyGroupsMain"
+        component={StudyGroupsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="GroupChat"
+        component={GroupChatScreen}
+        options={({ route }) => ({
+          headerTitle: route.params?.groupName || 'Group Chat',
+          headerBackTitle: 'Back',
+        })}
+      />
+    </Stack.Navigator>
+  );
+};
+
+
+// Custom Tab Bar Button
+const CustomTabButton = ({ route, focused, color }) => {
+  const { mode } = useSelector((state) => state.theme);
+  const isDark = mode === 'dark';
+  const themeColors = isDark ? COLORS.dark : COLORS.light;
+
+  let iconName;
+  let label;
+
+  switch (route.name) {
+    case 'Home':
+      iconName = 'home';
+      label = 'Home';
+      break;
+    case 'Favourites':
+      iconName = 'heart';
+      label = 'Favourites';
+      break;
+    case 'PeerMatch':
+      iconName = 'users';
+      label = 'Peers';
+      break;
+    case 'StudyGroups':
+      iconName = 'message-circle';
+      label = 'Groups';
+      break;
+    default:
+      iconName = 'circle';
+      label = '';
+  }
+
+  return (
+    <View style={styles.tabButtonContainer}>
+      {focused ? (
+        <View style={[styles.activeTab, { backgroundColor: COLORS.primary }]}>
+          <Feather name={iconName} size={20} color="#FFFFFF" />
+          <Text style={styles.activeTabText}>{label}</Text>
+        </View>
+      ) : (
+        <View style={styles.inactiveTab}>
+          <Feather name={iconName} size={24} color={themeColors.textSecondary} />
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -42,60 +121,40 @@ const MainNavigator = () => {
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
 
-  const tabBarOptions = {
-    activeTintColor: COLORS.primary,
-    inactiveTintColor: isDark ? COLORS.dark.textSecondary : COLORS.light.textSecondary,
-    style: {
-      backgroundColor: isDark ? COLORS.dark.card : COLORS.light.card,
-      borderTopColor: isDark ? COLORS.dark.border : COLORS.light.border,
-      paddingBottom: 5,
-      height: 60,
-    },
-    labelStyle: {
-      fontSize: SIZES.caption,
-      fontWeight: '600',
-    },
-  };
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          switch (route.name) {
-            case 'Home':
-              iconName = 'home';
-              break;
-            case 'PeerMatch':
-              iconName = 'users';
-              break;
-            case 'StudyGroups':
-              iconName = 'message-circle';
-              break;
-            case 'Favourites':
-              iconName = 'heart';
-              break;
-            case 'Profile':
-              iconName = 'user';
-              break;
-            default:
-              iconName = 'circle';
-          }
-
-          return <Feather name={iconName} size={size} color={color} />;
-        },
+        tabBarIcon: ({ focused, color }) => (
+          <CustomTabButton route={route} focused={focused} color={color} />
+        ),
         headerShown: true,
-        tabBarActiveTintColor: tabBarOptions.activeTintColor,
-        tabBarInactiveTintColor: tabBarOptions.inactiveTintColor,
-        tabBarStyle: tabBarOptions.style,
-        tabBarLabelStyle: tabBarOptions.labelStyle,
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: isDark ? COLORS.dark.textSecondary : COLORS.light.textSecondary,
+        tabBarStyle: {
+          backgroundColor: isDark ? COLORS.dark.card : COLORS.light.card,
+          borderTopColor: isDark ? COLORS.dark.border : COLORS.light.border,
+          borderTopWidth: 1,
+          paddingTop: 10,
+          paddingBottom: 10,
+          height: 70,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarShowLabel: false,
+        tabBarItemStyle: {
+          paddingVertical: 5,
+        },
       })}
     >
       <Tab.Screen
         name="Home"
         component={HomeStack}
-        options={{ title: 'Home' }}
+        options={{ title: 'Home', headerShown: false }}
+      />
+      <Tab.Screen
+        name="Favourites"
+        component={FavouritesScreen}
+        options={{ title: 'Favourites' }}
       />
       <Tab.Screen
         name="PeerMatch"
@@ -104,21 +163,38 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="StudyGroups"
-        component={StudyGroupsScreen}
-        options={{ title: 'Groups' }}
-      />
-      <Tab.Screen
-        name="Favourites"
-        component={FavouritesScreen}
-        options={{ title: 'Favourites' }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
+        component={StudyGroupsStack}
+        options={{ title: 'Groups', headerShown: false }}
       />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  tabButtonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  activeTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  inactiveTab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+});
 
 export default MainNavigator;

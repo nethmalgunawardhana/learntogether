@@ -14,6 +14,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { register, clearError } from '../../store/slices/authSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
+import { useForm } from '../../hooks/useForm';
+import { registerSchema } from '../../utils/validationSchemas';
 
 const RegisterScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -21,64 +23,37 @@ const RegisterScreen = ({ navigation }) => {
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
 
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState({});
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.username) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleRegister = async () => {
-    if (validateForm()) {
+  // Use custom form hook with Yup validation
+  const {
+    values,
+    errors: formErrors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+  } = useForm(
+    {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+    registerSchema,
+    async (values) => {
       dispatch(clearError());
       await dispatch(
         register({
-          email: formData.email.trim(),
-          password: formData.password,
-          username: formData.username.trim(),
+          email: values.email.trim(),
+          password: values.password,
+          username: values.username.trim(),
           profile: {},
         })
       );
     }
-  };
-
-  const updateFormData = (field, value) => {
-    setFormData({ ...formData, [field]: value });
-  };
+  );
 
   const themeColors = isDark ? COLORS.dark : COLORS.light;
 
@@ -124,7 +99,7 @@ const RegisterScreen = ({ navigation }) => {
                 styles.inputWrapper,
                 {
                   backgroundColor: themeColors.surface,
-                  borderColor: errors.username ? COLORS.light.error : themeColors.border,
+                  borderColor: (touched.username && formErrors.username) ? COLORS.light.error : themeColors.border,
                 },
               ]}
             >
@@ -138,14 +113,15 @@ const RegisterScreen = ({ navigation }) => {
                 style={[styles.input, { color: themeColors.text }]}
                 placeholder="Choose a username"
                 placeholderTextColor={themeColors.textSecondary}
-                value={formData.username}
-                onChangeText={(value) => updateFormData('username', value)}
+                value={values.username}
+                onChangeText={handleChange('username')}
+                onBlur={handleBlur('username')}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
-            {errors.username && (
-              <Text style={styles.errorTextSmall}>{errors.username}</Text>
+            {touched.username && formErrors.username && (
+              <Text style={styles.errorTextSmall}>{formErrors.username}</Text>
             )}
           </View>
 
@@ -157,7 +133,7 @@ const RegisterScreen = ({ navigation }) => {
                 styles.inputWrapper,
                 {
                   backgroundColor: themeColors.surface,
-                  borderColor: errors.email ? COLORS.light.error : themeColors.border,
+                  borderColor: (touched.email && formErrors.email) ? COLORS.light.error : themeColors.border,
                 },
               ]}
             >
@@ -171,15 +147,16 @@ const RegisterScreen = ({ navigation }) => {
                 style={[styles.input, { color: themeColors.text }]}
                 placeholder="Enter your email"
                 placeholderTextColor={themeColors.textSecondary}
-                value={formData.email}
-                onChangeText={(value) => updateFormData('email', value)}
+                value={values.email}
+                onChangeText={handleChange('email')}
+                onBlur={handleBlur('email')}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
-            {errors.email && (
-              <Text style={styles.errorTextSmall}>{errors.email}</Text>
+            {touched.email && formErrors.email && (
+              <Text style={styles.errorTextSmall}>{formErrors.email}</Text>
             )}
           </View>
 
@@ -191,7 +168,7 @@ const RegisterScreen = ({ navigation }) => {
                 styles.inputWrapper,
                 {
                   backgroundColor: themeColors.surface,
-                  borderColor: errors.password ? COLORS.light.error : themeColors.border,
+                  borderColor: (touched.password && formErrors.password) ? COLORS.light.error : themeColors.border,
                 },
               ]}
             >
@@ -205,8 +182,9 @@ const RegisterScreen = ({ navigation }) => {
                 style={[styles.input, { color: themeColors.text }]}
                 placeholder="Choose a password"
                 placeholderTextColor={themeColors.textSecondary}
-                value={formData.password}
-                onChangeText={(value) => updateFormData('password', value)}
+                value={values.password}
+                onChangeText={handleChange('password')}
+                onBlur={handleBlur('password')}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -218,8 +196,8 @@ const RegisterScreen = ({ navigation }) => {
                 />
               </TouchableOpacity>
             </View>
-            {errors.password && (
-              <Text style={styles.errorTextSmall}>{errors.password}</Text>
+            {touched.password && formErrors.password && (
+              <Text style={styles.errorTextSmall}>{formErrors.password}</Text>
             )}
           </View>
 
@@ -233,7 +211,7 @@ const RegisterScreen = ({ navigation }) => {
                 styles.inputWrapper,
                 {
                   backgroundColor: themeColors.surface,
-                  borderColor: errors.confirmPassword
+                  borderColor: (touched.confirmPassword && formErrors.confirmPassword)
                     ? COLORS.light.error
                     : themeColors.border,
                 },
@@ -249,8 +227,9 @@ const RegisterScreen = ({ navigation }) => {
                 style={[styles.input, { color: themeColors.text }]}
                 placeholder="Confirm your password"
                 placeholderTextColor={themeColors.textSecondary}
-                value={formData.confirmPassword}
-                onChangeText={(value) => updateFormData('confirmPassword', value)}
+                value={values.confirmPassword}
+                onChangeText={handleChange('confirmPassword')}
+                onBlur={handleBlur('confirmPassword')}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
               />
@@ -264,15 +243,15 @@ const RegisterScreen = ({ navigation }) => {
                 />
               </TouchableOpacity>
             </View>
-            {errors.confirmPassword && (
-              <Text style={styles.errorTextSmall}>{errors.confirmPassword}</Text>
+            {touched.confirmPassword && formErrors.confirmPassword && (
+              <Text style={styles.errorTextSmall}>{formErrors.confirmPassword}</Text>
             )}
           </View>
 
           {/* Register Button */}
           <TouchableOpacity
             style={[styles.registerButton, loading && styles.registerButtonDisabled]}
-            onPress={handleRegister}
+            onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (

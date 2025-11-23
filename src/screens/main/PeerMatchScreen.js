@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSelector } from 'react-redux';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
-import { getMatchingPeers } from '../../services/firestoreService';
+import { getMatchingPeers } from '../../services/apiService';
 import { getInitials, calculateMatchPercentage } from '../../utils/helpers';
+import { addConnection, removeConnection, selectIsConnected } from '../../store/slices/connectionsSlice';
 
 const PeerMatchScreen = () => {
+  const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
+  const { connections } = useSelector((state) => state.connections);
   const [peers, setPeers] = useState([]);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
@@ -29,11 +32,37 @@ const PeerMatchScreen = () => {
     }
   };
 
-  const renderPeerCard = ({ item }) => {
-    const matchPercentage = calculateMatchPercentage(
-      userData?.subjects || [],
-      item.subjects || []
+  const handleConnect = (peer) => {
+    Alert.alert(
+      'Connect with Peer',
+      `Send connection request to ${peer.displayName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Connect',
+          onPress: () => dispatch(addConnection(peer)),
+        },
+      ]
     );
+  };
+
+  const handleDisconnect = (peer) => {
+    Alert.alert(
+      'Remove Connection',
+      `Remove ${peer.displayName} from your connections?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => dispatch(removeConnection(peer.id)),
+        },
+      ]
+    );
+  };
+
+  const renderPeerCard = ({ item }) => {
+    const isConnected = connections.some(conn => conn.id === item.id);
 
     return (
       <TouchableOpacity
@@ -51,20 +80,30 @@ const PeerMatchScreen = () => {
               {item.level} • {item.subjects?.slice(0, 2).join(', ')}
             </Text>
           </View>
-          <View style={[styles.matchBadge, { backgroundColor: `${COLORS.accent}20` }]}>
-            <Text style={[styles.matchText, { color: COLORS.accent }]}>
-              {matchPercentage}%
-            </Text>
-          </View>
         </View>
         {item.bio && (
           <Text style={[styles.peerBio, { color: themeColors.textSecondary }]} numberOfLines={2}>
             {item.bio}
           </Text>
         )}
-        <TouchableOpacity style={styles.connectButton}>
-          <Feather name="user-plus" size={16} color={COLORS.primary} />
-          <Text style={[styles.connectText, { color: COLORS.primary }]}>Connect</Text>
+        <TouchableOpacity
+          style={[
+            styles.connectButton,
+            isConnected && { backgroundColor: `${COLORS.secondary}15` }
+          ]}
+          onPress={() => isConnected ? handleDisconnect(item) : handleConnect(item)}
+        >
+          <Feather
+            name={isConnected ? "user-check" : "user-plus"}
+            size={16}
+            color={isConnected ? COLORS.secondary : COLORS.primary}
+          />
+          <Text style={[
+            styles.connectText,
+            { color: isConnected ? COLORS.secondary : COLORS.primary }
+          ]}>
+            {isConnected ? 'Connected' : 'Connect'}
+          </Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -119,8 +158,6 @@ const styles = StyleSheet.create({
   peerInfo: { flex: 1 },
   peerName: { fontSize: SIZES.h6, fontWeight: 'bold', marginBottom: 4 },
   peerLevel: { fontSize: SIZES.caption },
-  matchBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  matchText: { fontSize: SIZES.caption, fontWeight: 'bold' },
   peerBio: { fontSize: SIZES.body, marginBottom: 12, lineHeight: 20 },
   connectButton: {
     flexDirection: 'row',

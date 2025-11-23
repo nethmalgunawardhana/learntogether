@@ -44,6 +44,28 @@ export const removeFavourite = createAsyncThunk(
   }
 );
 
+export const toggleFavourite = createAsyncThunk(
+  'favourites/toggleFavourite',
+  async (item, { getState, dispatch, rejectWithValue }) => {
+    try {
+      const { favourites } = getState().favourites;
+      const exists = favourites.find(fav => fav.id === item.id);
+
+      if (exists) {
+        // Remove from favourites
+        await dispatch(removeFavourite(item.id)).unwrap();
+        return { action: 'removed', id: item.id };
+      } else {
+        // Add to favourites
+        await dispatch(addFavourite(item)).unwrap();
+        return { action: 'added', item };
+      }
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   favourites: [],
@@ -110,4 +132,9 @@ const favouritesSlice = createSlice({
 });
 
 export const { clearError } = favouritesSlice.actions;
+
+// Selectors
+export const selectIsFavourite = (itemId) => (state) =>
+  state.favourites.favourites.some(item => item.id === itemId);
+
 export default favouritesSlice.reducer;

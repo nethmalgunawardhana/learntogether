@@ -14,6 +14,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { login, clearError } from '../../store/slices/authSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
+import { useForm } from '../../hooks/useForm';
+import { loginSchema } from '../../utils/validationSchemas';
 
 const LoginScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -21,36 +23,27 @@ const LoginScreen = ({ navigation }) => {
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleLogin = async () => {
-    if (validateForm()) {
+  // Use custom form hook with Yup validation
+  const {
+    values,
+    errors: formErrors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+  } = useForm(
+    {
+      email: '',
+      password: '',
+    },
+    loginSchema,
+    async (values) => {
       dispatch(clearError());
-      await dispatch(login({ email: email.trim(), password }));
+      await dispatch(login({ email: values.email.trim(), password: values.password }));
     }
-  };
+  );
 
   const themeColors = isDark ? COLORS.dark : COLORS.light;
 
@@ -78,6 +71,14 @@ const LoginScreen = ({ navigation }) => {
 
         {/* Login Form */}
         <View style={styles.formContainer}>
+          {/* Test Credentials Info */}
+          <View style={[styles.infoContainer, { backgroundColor: `${COLORS.primary}15`, borderColor: COLORS.primary }]}>
+            <Feather name="info" size={16} color={COLORS.primary} />
+            <Text style={[styles.infoText, { color: COLORS.primary }]}>
+              Demo: Use username <Text style={{ fontWeight: 'bold' }}>emilys</Text> & password <Text style={{ fontWeight: 'bold' }}>emilyspass</Text>
+            </Text>
+          </View>
+
           {/* Error Message */}
           {error && (
             <View style={styles.errorContainer}>
@@ -88,13 +89,13 @@ const LoginScreen = ({ navigation }) => {
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: themeColors.text }]}>Email</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Username</Text>
             <View
               style={[
                 styles.inputWrapper,
                 {
                   backgroundColor: themeColors.surface,
-                  borderColor: errors.email ? COLORS.light.error : themeColors.border,
+                  borderColor: (touched.email && formErrors.email) ? COLORS.light.error : themeColors.border,
                 },
               ]}
             >
@@ -106,17 +107,17 @@ const LoginScreen = ({ navigation }) => {
               />
               <TextInput
                 style={[styles.input, { color: themeColors.text }]}
-                placeholder="Enter your email"
+                placeholder="Enter your username"
                 placeholderTextColor={themeColors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                value={values.email}
+                onChangeText={handleChange('email')}
+                onBlur={handleBlur('email')}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
-            {errors.email && (
-              <Text style={styles.errorTextSmall}>{errors.email}</Text>
+            {touched.email && formErrors.email && (
+              <Text style={styles.errorTextSmall}>{formErrors.email}</Text>
             )}
           </View>
 
@@ -128,7 +129,7 @@ const LoginScreen = ({ navigation }) => {
                 styles.inputWrapper,
                 {
                   backgroundColor: themeColors.surface,
-                  borderColor: errors.password ? COLORS.light.error : themeColors.border,
+                  borderColor: (touched.password && formErrors.password) ? COLORS.light.error : themeColors.border,
                 },
               ]}
             >
@@ -142,8 +143,9 @@ const LoginScreen = ({ navigation }) => {
                 style={[styles.input, { color: themeColors.text }]}
                 placeholder="Enter your password"
                 placeholderTextColor={themeColors.textSecondary}
-                value={password}
-                onChangeText={setPassword}
+                value={values.password}
+                onChangeText={handleChange('password')}
+                onBlur={handleBlur('password')}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -155,15 +157,15 @@ const LoginScreen = ({ navigation }) => {
                 />
               </TouchableOpacity>
             </View>
-            {errors.password && (
-              <Text style={styles.errorTextSmall}>{errors.password}</Text>
+            {touched.password && formErrors.password && (
+              <Text style={styles.errorTextSmall}>{formErrors.password}</Text>
             )}
           </View>
 
           {/* Login Button */}
           <TouchableOpacity
             style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
+            onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
@@ -293,6 +295,19 @@ const styles = StyleSheet.create({
     fontSize: SIZES.body,
     color: COLORS.primary,
     fontWeight: 'bold',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 8,
+  },
+  infoText: {
+    fontSize: SIZES.body,
+    flex: 1,
   },
 });
 

@@ -1,15 +1,9 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  sendPasswordResetEmail,
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../../firebase/config';
+const API_BASE_URL = 'https://dummyjson.com';
 
 /**
  * Register a new user with email and password
+ * Note: DummyJSON doesn't support real registration, so we'll simulate it
+ * by creating a mock user object. For a real app, you'd need a proper backend.
  * @param {string} email - User's email
  * @param {string} password - User's password
  * @param {string} username - User's username
@@ -18,21 +12,23 @@ import { auth, db } from '../../firebase/config';
  */
 export const registerUser = async (email, password, username, profile = {}) => {
   try {
-    // Create user with Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    // Update display name
-    await updateProfile(user, {
-      displayName: username,
-    });
-
-    // Create user document in Firestore
-    const userData = {
-      uid: user.uid,
-      email: user.email,
+    // Simulate registration by creating a mock user
+    // In a real app, this would be a POST request to your backend
+    const mockUser = {
+      id: Date.now(),
+      email: email,
       username: username,
+      firstName: username.split(' ')[0] || username,
+      lastName: username.split(' ')[1] || '',
+    };
+
+    const userData = {
+      uid: mockUser.id.toString(),
+      email: mockUser.email,
+      username: mockUser.username,
       displayName: username,
+      firstName: mockUser.firstName,
+      lastName: mockUser.lastName,
       createdAt: new Date().toISOString(),
       subjects: profile.subjects || [],
       learningGoals: profile.learningGoals || [],
@@ -44,15 +40,14 @@ export const registerUser = async (email, password, username, profile = {}) => {
       helpfulCount: 0,
     };
 
-    await setDoc(doc(db, 'users', user.uid), userData);
-
     return {
       user: {
-        uid: user.uid,
-        email: user.email,
+        uid: mockUser.id.toString(),
+        email: mockUser.email,
         displayName: username,
       },
       userData,
+      accessToken: 'mock-token-' + Date.now(),
     };
   } catch (error) {
     throw handleAuthError(error);
@@ -60,27 +55,69 @@ export const registerUser = async (email, password, username, profile = {}) => {
 };
 
 /**
- * Sign in user with email and password
- * @param {string} email - User's email
+ * Sign in user with username and password using DummyJSON API
+ * @param {string} email - User's email or username (DummyJSON accepts username)
  * @param {string} password - User's password
  * @returns {Promise<Object>} User data
  */
 export const loginUser = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    // DummyJSON uses username for login
+    // Accept both email format and plain username
+    const username = email.includes('@') ? email.split('@')[0] : email;
 
-    // Fetch user data from Firestore
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    const userData = userDoc.exists() ? userDoc.data() : null;
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username.trim(),
+        password: password.trim(),
+        expiresInMins: 60,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Provide helpful error messages
+      if (response.status === 401) {
+        throw new Error('Invalid username or password. Try: emilys / emilyspass');
+      }
+      throw new Error(data.message || 'Login failed. Please check your credentials.');
+    }
+
+    // Transform DummyJSON user data to our app's format
+    const userData = {
+      uid: data.id.toString(),
+      email: data.email,
+      username: data.username,
+      displayName: `${data.firstName} ${data.lastName}`,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      image: data.image,
+      gender: data.gender,
+      createdAt: new Date().toISOString(),
+      subjects: [],
+      learningGoals: [],
+      level: 'Beginner',
+      bio: '',
+      badges: [],
+      studyStreak: 0,
+      notesShared: 0,
+      helpfulCount: 0,
+    };
 
     return {
       user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
+        uid: data.id.toString(),
+        email: data.email,
+        displayName: `${data.firstName} ${data.lastName}`,
       },
       userData,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
     };
   } catch (error) {
     throw handleAuthError(error);
@@ -93,7 +130,9 @@ export const loginUser = async (email, password) => {
  */
 export const logoutUser = async () => {
   try {
-    await signOut(auth);
+    // For dummy API, we just clear local data
+    // No actual API call needed
+    return Promise.resolve();
   } catch (error) {
     throw handleAuthError(error);
   }
@@ -101,66 +140,84 @@ export const logoutUser = async () => {
 
 /**
  * Send password reset email
+ * Note: DummyJSON doesn't support this, so we'll simulate it
  * @param {string} email - User's email
  * @returns {Promise<void>}
  */
 export const resetPassword = async (email) => {
   try {
-    await sendPasswordResetEmail(auth, email);
+    // Simulate password reset
+    // In a real app, this would send an actual email
+    return Promise.resolve();
   } catch (error) {
     throw handleAuthError(error);
   }
 };
 
 /**
- * Get current user's data from Firestore
+ * Get current user's data using access token
  * @param {string} uid - User's UID
+ * @param {string} accessToken - JWT access token
  * @returns {Promise<Object>} User data
  */
-export const getUserData = async (uid) => {
+export const getUserData = async (uid, accessToken) => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', uid));
-    if (userDoc.exists()) {
-      return userDoc.data();
+    if (!accessToken) {
+      return null;
     }
-    return null;
+
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Transform DummyJSON user data to our app's format
+    return {
+      uid: data.id.toString(),
+      email: data.email,
+      username: data.username,
+      displayName: `${data.firstName} ${data.lastName}`,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      image: data.image,
+      gender: data.gender,
+      createdAt: new Date().toISOString(),
+      subjects: [],
+      learningGoals: [],
+      level: 'Beginner',
+      bio: '',
+      badges: [],
+      studyStreak: 0,
+      notesShared: 0,
+      helpfulCount: 0,
+    };
   } catch (error) {
     throw error;
   }
 };
 
 /**
- * Handle Firebase authentication errors
- * @param {Error} error - Firebase error
+ * Handle authentication errors
+ * @param {Error} error - Error object
  * @returns {Error} Formatted error
  */
 const handleAuthError = (error) => {
   let message = 'An error occurred. Please try again.';
 
-  switch (error.code) {
-    case 'auth/email-already-in-use':
-      message = 'This email is already registered.';
-      break;
-    case 'auth/invalid-email':
-      message = 'Invalid email address.';
-      break;
-    case 'auth/user-disabled':
-      message = 'This account has been disabled.';
-      break;
-    case 'auth/user-not-found':
-      message = 'No account found with this email.';
-      break;
-    case 'auth/wrong-password':
-      message = 'Incorrect password.';
-      break;
-    case 'auth/weak-password':
-      message = 'Password should be at least 6 characters.';
-      break;
-    case 'auth/network-request-failed':
-      message = 'Network error. Please check your connection.';
-      break;
-    default:
-      message = error.message;
+  if (error.message.includes('Invalid credentials')) {
+    message = 'Invalid username or password.';
+  } else if (error.message.includes('Network')) {
+    message = 'Network error. Please check your connection.';
+  } else if (error.message) {
+    message = error.message;
   }
 
   return new Error(message);
