@@ -5,7 +5,7 @@ import {
   addStudyMaterial,
   updateStudyMaterial,
   deleteStudyMaterial,
-} from '../../services/firestoreService';
+} from '../../services/apiService';
 
 // Async thunks
 export const fetchMaterials = createAsyncThunk(

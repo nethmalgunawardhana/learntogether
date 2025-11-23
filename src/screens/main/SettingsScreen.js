@@ -13,7 +13,7 @@ import { logout } from '../../store/slices/authSlice';
 import { toggleTheme } from '../../store/slices/themeSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
 
-const SettingsScreen = ({ navigation }) => {
+const SettingsScreen = ({ navigation, onClose }) => {
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
@@ -80,6 +80,15 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      {/* Close button when in modal */}
+      {onClose && (
+        <View style={[styles.modalHeader, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
+          <Text style={[styles.modalTitle, { color: themeColors.text }]}>Settings</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Feather name="x" size={24} color={themeColors.text} />
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -242,7 +251,7 @@ const SettingsScreen = ({ navigation }) => {
               iconColor: COLORS.accent,
               label: 'Developer Tools',
               description: 'Seed data and debug options',
-              onPress: () => navigation.navigate('Debug'),
+              onPress: () => navigation?.navigate('Debug'),
             },
           ]}
         />
@@ -279,6 +288,22 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.padding,
+    paddingTop: 50,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: SIZES.h4,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 8,
   },
   content: {
     padding: SIZES.padding,

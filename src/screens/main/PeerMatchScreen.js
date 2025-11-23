@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native
 import { useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
-import { getMatchingPeers } from '../../services/firestoreService';
+import { getMatchingPeers } from '../../services/apiService';
 import { getInitials, calculateMatchPercentage } from '../../utils/helpers';
 
 const PeerMatchScreen = () => {

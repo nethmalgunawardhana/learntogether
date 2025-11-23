@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { subscribeToCollection } from '../services/firestoreService';
+import { subscribeToCollection } from '../services/apiService';
 import { setMaterials } from '../store/slices/materialsSlice';
 
 /**

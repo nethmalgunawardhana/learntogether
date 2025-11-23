@@ -10,7 +10,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { fetchMaterialById } from '../../store/slices/materialsSlice';
-import { addFavourite, removeFavourite } from '../../store/slices/favouritesSlice';
+import { toggleFavourite, selectIsFavourite } from '../../store/slices/favouritesSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
 import { formatDate } from '../../utils/helpers';
 
@@ -18,22 +18,18 @@ const DetailsScreen = ({ route, navigation }) => {
   const { materialId } = route.params;
   const dispatch = useDispatch();
   const { selectedMaterial, loading } = useSelector((state) => state.materials);
-  const { favourites } = useSelector((state) => state.favourites);
+  const isFavourite = useSelector(selectIsFavourite(materialId));
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
-
-  const isFavourite = favourites.some((item) => item.id === materialId);
 
   useEffect(() => {
     dispatch(fetchMaterialById(materialId));
   }, [materialId, dispatch]);
 
-  const toggleFavourite = () => {
-    if (isFavourite) {
-      dispatch(removeFavourite(materialId));
-    } else {
-      dispatch(addFavourite(selectedMaterial));
+  const handleToggleFavourite = () => {
+    if (selectedMaterial) {
+      dispatch(toggleFavourite(selectedMaterial));
     }
   };
 
@@ -137,7 +133,7 @@ const DetailsScreen = ({ route, navigation }) => {
               styles.secondaryButton,
               { backgroundColor: themeColors.surface, borderColor: themeColors.border },
             ]}
-            onPress={toggleFavourite}
+            onPress={handleToggleFavourite}
           >
             <Feather
               name={isFavourite ? 'heart' : 'heart'}
