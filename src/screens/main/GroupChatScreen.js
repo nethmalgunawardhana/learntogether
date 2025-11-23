@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,19 @@ import {
   Modal,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
 import {
   addMessageToGroup,
   addMaterialToGroup,
   addQuestionToGroup,
   addAnswerToQuestion,
+  addReactionToMessage,
   selectGroupById,
 } from '../../store/slices/studyGroupsSlice';
 import { formatDate } from '../../utils/helpers';
@@ -35,19 +39,88 @@ const GroupChatScreen = ({ route, navigation }) => {
 
   const [activeTab, setActiveTab] = useState('chat'); // 'chat', 'materials', 'questions'
   const [messageText, setMessageText] = useState('');
-  const [materialModalVisible, setMaterialModalVisible] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [materialModalVisible, setMaterialModalVisible] = useState(false);
   const [materialTitle, setMaterialTitle] = useState('');
   const [materialDescription, setMaterialDescription] = useState('');
   const [materialUrl, setMaterialUrl] = useState('');
+  const [materialFile, setMaterialFile] = useState(null);
   const [questionModalVisible, setQuestionModalVisible] = useState(false);
   const [questionTitle, setQuestionTitle] = useState('');
   const [questionDescription, setQuestionDescription] = useState('');
   const [answerModalVisible, setAnswerModalVisible] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [answerText, setAnswerText] = useState('');
+  const [fullScreenImage, setFullScreenImage] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(null);
+  const flatListRef = useRef(null);
+
+  const EMOJI_OPTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
+
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Camera permission is required to take photos');
+      return false;
+    }
+    return true;
+  };
+
+  const requestMediaLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Media library permission is required to select photos');
+      return false;
+    }
+    return true;
+  };
+
+  const handleTakePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const handleImageAction = () => {
+    Alert.alert(
+      'Send Image',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: handleTakePhoto },
+        { text: 'Choose from Library', onPress: handlePickImage },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
 
   const handleSendMessage = () => {
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && !selectedImage) return;
 
     const message = {
       id: Date.now().toString(),
@@ -55,10 +128,32 @@ const GroupChatScreen = ({ route, navigation }) => {
       userId: userData.uid,
       userName: userData.displayName || 'User',
       timestamp: new Date().toISOString(),
+      image: selectedImage || null,
     };
 
     dispatch(addMessageToGroup({ groupId, message }));
     setMessageText('');
+    setSelectedImage(null);
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setMaterialFile({
+          uri: result.assets[0].uri,
+          name: result.assets[0].name,
+          size: result.assets[0].size,
+          mimeType: result.assets[0].mimeType,
+        });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick document');
+    }
   };
 
   const handleAddMaterial = () => {
@@ -72,6 +167,7 @@ const GroupChatScreen = ({ route, navigation }) => {
       title: materialTitle.trim(),
       description: materialDescription.trim(),
       url: materialUrl.trim(),
+      file: materialFile || null,
       uploadedBy: userData.uid,
       uploaderName: userData.displayName || 'User',
       timestamp: new Date().toISOString(),
@@ -82,6 +178,7 @@ const GroupChatScreen = ({ route, navigation }) => {
     setMaterialTitle('');
     setMaterialDescription('');
     setMaterialUrl('');
+    setMaterialFile(null);
     Alert.alert('Success', 'Material added successfully!');
   };
 
@@ -129,27 +226,108 @@ const GroupChatScreen = ({ route, navigation }) => {
     Alert.alert('Success', 'Answer submitted!');
   };
 
+  const handleReaction = (messageId, emoji) => {
+    dispatch(addReactionToMessage({
+      groupId,
+      messageId,
+      emoji,
+      userId: userData.uid
+    }));
+    setShowEmojiPicker(null);
+  };
+
   const renderMessage = ({ item }) => {
     const isOwnMessage = item.userId === userData.uid;
+    const reactions = item.reactions || {};
+    const hasReactions = Object.keys(reactions).length > 0;
+
     return (
-      <View style={[styles.messageContainer, isOwnMessage && styles.ownMessage]}>
-        <View style={[
-          styles.messageBubble,
-          { backgroundColor: isOwnMessage ? COLORS.primary : themeColors.card },
-          !isOwnMessage && { borderColor: themeColors.border, borderWidth: 1 }
-        ]}>
-          {!isOwnMessage && (
-            <Text style={[styles.messageSender, { color: COLORS.accent }]}>
-              {item.userName}
-            </Text>
-          )}
-          <Text style={[styles.messageText, { color: isOwnMessage ? '#FFFFFF' : themeColors.text }]}>
-            {item.text}
-          </Text>
-          <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : themeColors.textSecondary }]}>
-            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-        </View>
+      <View style={[styles.messageWrapper, isOwnMessage && styles.messageWrapperOwn]}>
+        <TouchableOpacity
+          onLongPress={() => setShowEmojiPicker(item.id)}
+          activeOpacity={0.9}
+          style={styles.messageTouchable}
+        >
+          <View style={[
+            styles.messageBubble,
+            { backgroundColor: isOwnMessage ? COLORS.primary : themeColors.card },
+            !isOwnMessage && { borderColor: themeColors.border, borderWidth: 1 }
+          ]}>
+            {!isOwnMessage && (
+              <Text style={[styles.messageSender, { color: COLORS.accent }]}>
+                {item.userName}
+              </Text>
+            )}
+            {item.image && (
+              <TouchableOpacity onPress={() => setFullScreenImage(item.image)}>
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            {item.text && (
+              <Text style={[styles.messageText, { color: isOwnMessage ? '#FFFFFF' : themeColors.text }]}>
+                {item.text}
+              </Text>
+            )}
+            <View style={styles.messageFooter}>
+              <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : themeColors.textSecondary }]}>
+                {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Reactions Display */}
+        {hasReactions && (
+          <View style={[styles.reactionsContainer, isOwnMessage && styles.reactionsContainerOwn]}>
+            {Object.entries(reactions).map(([emoji, userIds]) => (
+              <TouchableOpacity
+                key={emoji}
+                style={[
+                  styles.reactionBubble,
+                  { backgroundColor: themeColors.background, borderColor: themeColors.border },
+                  userIds.includes(userData.uid) && { backgroundColor: `${COLORS.primary}15`, borderColor: COLORS.primary }
+                ]}
+                onPress={() => handleReaction(item.id, emoji)}
+              >
+                <Text style={styles.reactionEmoji}>{emoji}</Text>
+                <Text style={[styles.reactionCount, { color: userIds.includes(userData.uid) ? COLORS.primary : themeColors.textSecondary }]}>
+                  {userIds.length}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[styles.reactionBubble, { backgroundColor: themeColors.background, borderColor: themeColors.border }]}
+              onPress={() => setShowEmojiPicker(item.id)}
+            >
+              <Feather name="plus" size={14} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Emoji Picker */}
+        {showEmojiPicker === item.id && (
+          <View style={[styles.emojiPicker, { backgroundColor: themeColors.card, borderColor: themeColors.border }, isOwnMessage && styles.emojiPickerOwn]}>
+            {EMOJI_OPTIONS.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.emojiOption}
+                onPress={() => handleReaction(item.id, emoji)}
+              >
+                <Text style={styles.emojiOptionText}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.emojiOption}
+              onPress={() => setShowEmojiPicker(null)}
+            >
+              <Feather name="x" size={20} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };
@@ -157,7 +335,7 @@ const GroupChatScreen = ({ route, navigation }) => {
   const renderMaterial = ({ item }) => (
     <View style={[styles.materialCard, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
       <View style={styles.materialHeader}>
-        <Feather name="file-text" size={24} color={COLORS.primary} />
+        <Feather name={item.file ? "file" : "link"} size={24} color={COLORS.primary} />
         <View style={styles.materialInfo}>
           <Text style={[styles.materialTitle, { color: themeColors.text }]}>{item.title}</Text>
           <Text style={[styles.materialUploader, { color: themeColors.textSecondary }]}>
@@ -169,6 +347,15 @@ const GroupChatScreen = ({ route, navigation }) => {
         <Text style={[styles.materialDescription, { color: themeColors.textSecondary }]}>
           {item.description}
         </Text>
+      )}
+      {item.file && (
+        <View style={[styles.fileInfo, { backgroundColor: themeColors.background }]}>
+          <Feather name="paperclip" size={16} color={themeColors.textSecondary} />
+          <Text style={[styles.fileName, { color: themeColors.text }]}>{item.file.name}</Text>
+          <Text style={[styles.fileSize, { color: themeColors.textSecondary }]}>
+            {(item.file.size / 1024 / 1024).toFixed(2)} MB
+          </Text>
+        </View>
       )}
       {item.url && (
         <TouchableOpacity style={styles.materialLink}>
@@ -240,11 +427,13 @@ const GroupChatScreen = ({ route, navigation }) => {
       keyboardVerticalOffset={100}
     >
       <FlatList
+        ref={flatListRef}
         data={group?.messages || []}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.messagesList}
-        inverted
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Feather name="message-circle" size={64} color={themeColors.textSecondary} />
@@ -258,17 +447,33 @@ const GroupChatScreen = ({ route, navigation }) => {
         }
       />
       <View style={[styles.inputContainer, { backgroundColor: themeColors.card, borderTopColor: themeColors.border }]}>
-        <TextInput
-          style={[styles.messageInput, { backgroundColor: themeColors.background, color: themeColors.text }]}
-          placeholder="Type a message..."
-          placeholderTextColor={themeColors.textSecondary}
-          value={messageText}
-          onChangeText={setMessageText}
-          multiline
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Feather name="send" size={20} color={COLORS.primary} />
-        </TouchableOpacity>
+        {selectedImage && (
+          <View style={styles.imagePreviewContainer}>
+            <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+            <TouchableOpacity
+              style={styles.removeImageButton}
+              onPress={() => setSelectedImage(null)}
+            >
+              <Feather name="x" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        )}
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.cameraButton} onPress={handleImageAction}>
+            <Feather name="camera" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.messageInput, { backgroundColor: themeColors.background, color: themeColors.text }]}
+            placeholder="Type a message..."
+            placeholderTextColor={themeColors.textSecondary}
+            value={messageText}
+            onChangeText={setMessageText}
+            multiline
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+            <Feather name="send" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -413,7 +618,7 @@ const GroupChatScreen = ({ route, navigation }) => {
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: themeColors.text }]}>URL/Link</Text>
+              <Text style={[styles.label, { color: themeColors.text }]}>URL/Link (Optional)</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: themeColors.card, color: themeColors.text, borderColor: themeColors.border }]}
                 placeholder="https://..."
@@ -421,6 +626,29 @@ const GroupChatScreen = ({ route, navigation }) => {
                 value={materialUrl}
                 onChangeText={setMaterialUrl}
               />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: themeColors.text }]}>Upload File</Text>
+              <TouchableOpacity
+                style={[styles.uploadButton, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}
+                onPress={handlePickDocument}
+              >
+                <Feather name="upload" size={20} color={COLORS.primary} />
+                <Text style={[styles.uploadButtonText, { color: COLORS.primary }]}>
+                  {materialFile ? materialFile.name : 'Choose file from device'}
+                </Text>
+              </TouchableOpacity>
+              {materialFile && (
+                <View style={[styles.filePreview, { backgroundColor: themeColors.background }]}>
+                  <Feather name="file" size={16} color={COLORS.primary} />
+                  <Text style={[styles.filePreviewText, { color: themeColors.text }]}>
+                    {materialFile.name}
+                  </Text>
+                  <TouchableOpacity onPress={() => setMaterialFile(null)}>
+                    <Feather name="x" size={16} color={COLORS.error} />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
             <TouchableOpacity
               style={[styles.submitButton, { backgroundColor: COLORS.primary }]}
@@ -527,6 +755,30 @@ const GroupChatScreen = ({ route, navigation }) => {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!fullScreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFullScreenImage(null)}
+      >
+        <View style={styles.fullScreenContainer}>
+          <TouchableOpacity
+            style={styles.fullScreenClose}
+            onPress={() => setFullScreenImage(null)}
+          >
+            <Feather name="x" size={30} color="#FFFFFF" />
+          </TouchableOpacity>
+          {fullScreenImage && (
+            <Image
+              source={{ uri: fullScreenImage }}
+              style={styles.fullScreenImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -553,22 +805,106 @@ const styles = StyleSheet.create({
   tabContainer: { flex: 1 },
   chatContainer: { flex: 1 },
   messagesList: { padding: SIZES.padding },
-  messageContainer: { marginBottom: 12 },
-  ownMessage: { alignItems: 'flex-end' },
-  messageBubble: {
+  messageWrapper: {
+    marginBottom: 16,
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  messageWrapperOwn: {
+    alignItems: 'flex-end',
+  },
+  messageTouchable: {
     maxWidth: '75%',
+  },
+  messageBubble: {
     padding: 12,
     borderRadius: SIZES.radius,
   },
   messageSender: { fontSize: SIZES.caption, fontWeight: '600', marginBottom: 4 },
   messageText: { fontSize: SIZES.body, lineHeight: 20 },
-  messageTime: { fontSize: SIZES.caption - 2, marginTop: 4 },
-  inputContainer: {
+  messageFooter: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 4 },
+  messageTime: { fontSize: SIZES.caption - 2 },
+  messageImage: {
+    width: 200,
+    height: 150,
+    borderRadius: SIZES.radius,
+    marginBottom: 8,
+  },
+  reactionsContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+    maxWidth: '75%',
+  },
+  reactionsContainerOwn: {
+    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
+  },
+  reactionBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  reactionEmoji: { fontSize: 14 },
+  reactionCount: { fontSize: SIZES.caption - 1, fontWeight: '600' },
+  emojiPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    padding: 12,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    marginTop: 8,
+    maxWidth: '85%',
+    ...SHADOWS.light,
+  },
+  emojiPickerOwn: {
+    alignSelf: 'flex-end',
+  },
+  emojiOption: {
+    padding: 6,
+  },
+  emojiOptionText: { fontSize: 24 },
+  inputContainer: {
     padding: SIZES.padding,
     borderTopWidth: 1,
+  },
+  imagePreviewContainer: {
+    marginBottom: 12,
+    position: 'relative',
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: SIZES.radius,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 12,
+  },
+  cameraButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   messageInput: {
     flex: 1,
@@ -597,6 +933,16 @@ const styles = StyleSheet.create({
   materialTitle: { fontSize: SIZES.h6, fontWeight: 'bold', marginBottom: 4 },
   materialUploader: { fontSize: SIZES.caption },
   materialDescription: { fontSize: SIZES.body, marginBottom: 12, lineHeight: 20 },
+  fileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: SIZES.radius,
+    marginBottom: 12,
+  },
+  fileName: { flex: 1, fontSize: SIZES.body, fontWeight: '500' },
+  fileSize: { fontSize: SIZES.caption },
   materialLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   materialLinkText: { fontSize: SIZES.body, fontWeight: '600' },
   questionsList: { padding: SIZES.padding },
@@ -680,6 +1026,25 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  uploadButtonText: { fontSize: SIZES.body, fontWeight: '500' },
+  filePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: SIZES.radius,
+    marginTop: 12,
+  },
+  filePreviewText: { flex: 1, fontSize: SIZES.body },
   submitButton: {
     padding: 16,
     borderRadius: SIZES.radius,
@@ -696,6 +1061,23 @@ const styles = StyleSheet.create({
   },
   questionPreviewTitle: { fontSize: SIZES.h6, fontWeight: 'bold', marginBottom: 4 },
   questionPreviewDesc: { fontSize: SIZES.body },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
 });
 
 export default GroupChatScreen;

@@ -135,6 +135,53 @@ export const addAnswerToQuestion = createAsyncThunk(
   }
 );
 
+export const addReactionToMessage = createAsyncThunk(
+  'studyGroups/addReaction',
+  async ({ groupId, messageId, emoji, userId }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            messages: (group.messages || []).map(msg => {
+              if (msg.id === messageId) {
+                const reactions = msg.reactions || {};
+                const emojiReactions = reactions[emoji] || [];
+
+                // Toggle reaction: if user already reacted with this emoji, remove it; otherwise add it
+                const hasReacted = emojiReactions.includes(userId);
+                const updatedEmojiReactions = hasReacted
+                  ? emojiReactions.filter(id => id !== userId)
+                  : [...emojiReactions, userId];
+
+                // Remove emoji key if no reactions left
+                const updatedReactions = { ...reactions };
+                if (updatedEmojiReactions.length === 0) {
+                  delete updatedReactions[emoji];
+                } else {
+                  updatedReactions[emoji] = updatedEmojiReactions;
+                }
+
+                return {
+                  ...msg,
+                  reactions: updatedReactions,
+                };
+              }
+              return msg;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, messageId, emoji, userId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   studyGroups: [],
@@ -213,6 +260,29 @@ const studyGroupsSlice = createSlice({
           const question = group.questions?.find(q => q.id === questionId);
           if (question) {
             question.answers = [...(question.answers || []), answer];
+          }
+        }
+      })
+      // Add reaction to message
+      .addCase(addReactionToMessage.fulfilled, (state, action) => {
+        const { groupId, messageId, emoji, userId } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const message = group.messages?.find(m => m.id === messageId);
+          if (message) {
+            const reactions = message.reactions || {};
+            const emojiReactions = reactions[emoji] || [];
+            const hasReacted = emojiReactions.includes(userId);
+            const updatedEmojiReactions = hasReacted
+              ? emojiReactions.filter(id => id !== userId)
+              : [...emojiReactions, userId];
+
+            if (updatedEmojiReactions.length === 0) {
+              delete reactions[emoji];
+            } else {
+              reactions[emoji] = updatedEmojiReactions;
+            }
+            message.reactions = reactions;
           }
         }
       });
