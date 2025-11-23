@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Modal,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { fetchMaterials } from '../../store/slices/materialsSlice';
+import { toggleTheme } from '../../store/slices/themeSlice';
+import { logout } from '../../store/slices/authSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
 import { formatDate } from '../../utils/helpers';
+import SettingsScreen from './SettingsScreen';
 
 const HomeScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -20,6 +26,7 @@ const HomeScreen = ({ navigation }) => {
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   useEffect(() => {
     dispatch(fetchMaterials());
@@ -97,8 +104,11 @@ const HomeScreen = ({ navigation }) => {
             {userData?.displayName || 'Student'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Feather name="bell" size={24} color={themeColors.text} />
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => setSettingsVisible(true)}
+        >
+          <Feather name="settings" size={24} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
@@ -129,6 +139,15 @@ const HomeScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      {/* Settings Modal */}
+      <Modal
+        visible={settingsVisible}
+        animationType="slide"
+        onRequestClose={() => setSettingsVisible(false)}
+      >
+        <SettingsScreen onClose={() => setSettingsVisible(false)} />
+      </Modal>
     </View>
   );
 };
@@ -152,7 +171,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 4,
   },
-  notificationButton: {
+  settingsButton: {
     padding: 8,
   },
   listContent: {
