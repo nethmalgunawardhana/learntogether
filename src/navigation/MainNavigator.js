@@ -12,6 +12,7 @@ import StudyGroupsScreen from '../screens/main/StudyGroupsScreen';
 import FavouritesScreen from '../screens/main/FavouritesScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import DetailsScreen from '../screens/main/DetailsScreen';
+import GroupChatScreen from '../screens/main/GroupChatScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -32,6 +33,27 @@ const HomeStack = () => {
           headerTitle: 'Study Material',
           headerBackTitle: 'Back',
         }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+// Study Groups Stack
+const StudyGroupsStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="StudyGroupsMain"
+        component={StudyGroupsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="GroupChat"
+        component={GroupChatScreen}
+        options={({ route }) => ({
+          headerTitle: route.params?.groupName || 'Group Chat',
+          headerBackTitle: 'Back',
+        })}
       />
     </Stack.Navigator>
   );
@@ -110,8 +132,8 @@ const MainNavigator = () => {
       />
       <Tab.Screen
         name="StudyGroups"
-        component={StudyGroupsScreen}
-        options={{ title: 'Groups' }}
+        component={StudyGroupsStack}
+        options={{ title: 'Groups', headerShown: false }}
       />
       <Tab.Screen
         name="Profile"

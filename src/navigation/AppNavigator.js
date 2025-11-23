@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { loadStoredUser } from '../store/slices/authSlice';
 import { loadTheme } from '../store/slices/themeSlice';
 import { loadFavourites } from '../store/slices/favouritesSlice';
+import { loadConnections } from '../store/slices/connectionsSlice';
+import { loadStudyGroups } from '../store/slices/studyGroupsSlice';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
@@ -20,6 +22,8 @@ const AppNavigator = () => {
       await dispatch(loadTheme());
       await dispatch(loadStoredUser());
       await dispatch(loadFavourites());
+      await dispatch(loadConnections());
+      await dispatch(loadStudyGroups());
     };
 
     initializeApp();
