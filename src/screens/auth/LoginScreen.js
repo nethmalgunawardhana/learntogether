@@ -71,6 +71,14 @@ const LoginScreen = ({ navigation }) => {
 
         {/* Login Form */}
         <View style={styles.formContainer}>
+          {/* Test Credentials Info */}
+          <View style={[styles.infoContainer, { backgroundColor: `${COLORS.primary}15`, borderColor: COLORS.primary }]}>
+            <Feather name="info" size={16} color={COLORS.primary} />
+            <Text style={[styles.infoText, { color: COLORS.primary }]}>
+              Demo: Use username <Text style={{ fontWeight: 'bold' }}>emilys</Text> & password <Text style={{ fontWeight: 'bold' }}>emilyspass</Text>
+            </Text>
+          </View>
+
           {/* Error Message */}
           {error && (
             <View style={styles.errorContainer}>
@@ -81,7 +89,7 @@ const LoginScreen = ({ navigation }) => {
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: themeColors.text }]}>Email</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>Username</Text>
             <View
               style={[
                 styles.inputWrapper,
@@ -99,12 +107,11 @@ const LoginScreen = ({ navigation }) => {
               />
               <TextInput
                 style={[styles.input, { color: themeColors.text }]}
-                placeholder="Enter your email or username"
+                placeholder="Enter your username"
                 placeholderTextColor={themeColors.textSecondary}
                 value={values.email}
                 onChangeText={handleChange('email')}
                 onBlur={handleBlur('email')}
-                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -288,6 +295,19 @@ const styles = StyleSheet.create({
     fontSize: SIZES.body,
     color: COLORS.primary,
     fontWeight: 'bold',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    marginBottom: 20,
+    gap: 8,
+  },
+  infoText: {
+    fontSize: SIZES.body,
+    flex: 1,
   },
 });
 

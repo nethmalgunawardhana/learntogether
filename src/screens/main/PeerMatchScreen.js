@@ -62,10 +62,6 @@ const PeerMatchScreen = () => {
   };
 
   const renderPeerCard = ({ item }) => {
-    const matchPercentage = calculateMatchPercentage(
-      userData?.subjects || [],
-      item.subjects || []
-    );
     const isConnected = connections.some(conn => conn.id === item.id);
 
     return (
@@ -82,11 +78,6 @@ const PeerMatchScreen = () => {
             </Text>
             <Text style={[styles.peerLevel, { color: themeColors.textSecondary }]}>
               {item.level} • {item.subjects?.slice(0, 2).join(', ')}
-            </Text>
-          </View>
-          <View style={[styles.matchBadge, { backgroundColor: `${COLORS.accent}20` }]}>
-            <Text style={[styles.matchText, { color: COLORS.accent }]}>
-              {matchPercentage}%
             </Text>
           </View>
         </View>
@@ -167,8 +158,6 @@ const styles = StyleSheet.create({
   peerInfo: { flex: 1 },
   peerName: { fontSize: SIZES.h6, fontWeight: 'bold', marginBottom: 4 },
   peerLevel: { fontSize: SIZES.caption },
-  matchBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  matchText: { fontSize: SIZES.caption, fontWeight: 'bold' },
   peerBio: { fontSize: SIZES.body, marginBottom: 12, lineHeight: 20 },
   connectButton: {
     flexDirection: 'row',
