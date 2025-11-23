@@ -5,29 +5,17 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Switch,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
-import { logout } from '../../store/slices/authSlice';
-import { toggleTheme } from '../../store/slices/themeSlice';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
 import { getInitials } from '../../utils/helpers';
 
-const ProfileScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
+const ProfileScreen = () => {
   const { userData } = useSelector((state) => state.auth);
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
-
-  const handleLogout = () => {
-    dispatch(logout());
-  };
-
-  const handleToggleTheme = () => {
-    dispatch(toggleTheme());
-  };
 
   const ProfileSection = ({ title, items }) => (
     <View style={[styles.section, { backgroundColor: themeColors.card }]}>
@@ -43,7 +31,6 @@ const ProfileScreen = ({ navigation }) => {
             { borderBottomColor: themeColors.border },
           ]}
           onPress={item.onPress}
-          disabled={item.type === 'switch'}
         >
           <View style={styles.menuItemLeft}>
             <Feather name={item.icon} size={20} color={item.color || themeColors.text} />
@@ -51,16 +38,7 @@ const ProfileScreen = ({ navigation }) => {
               {item.label}
             </Text>
           </View>
-          {item.type === 'switch' ? (
-            <Switch
-              value={isDark}
-              onValueChange={handleToggleTheme}
-              trackColor={{ false: themeColors.border, true: COLORS.primary }}
-              thumbColor="#FFFFFF"
-            />
-          ) : (
-            <Feather name="chevron-right" size={20} color={themeColors.textSecondary} />
-          )}
+          <Feather name="chevron-right" size={20} color={themeColors.textSecondary} />
         </TouchableOpacity>
       ))}
     </View>
@@ -125,46 +103,13 @@ const ProfileScreen = ({ navigation }) => {
           ]}
         />
 
-        {/* Preferences Section */}
+        {/* Activity Section */}
         <ProfileSection
-          title="PREFERENCES"
+          title="ACTIVITY"
           items={[
-            {
-              icon: 'moon',
-              label: 'Dark Mode',
-              type: 'switch',
-              onPress: handleToggleTheme,
-            },
-            { icon: 'bell', label: 'Notifications', onPress: () => {} },
-            { icon: 'globe', label: 'Language', onPress: () => {} },
-          ]}
-        />
-
-        {/* Developer Tools Section */}
-        <ProfileSection
-          title="DEVELOPER"
-          items={[
-            {
-              icon: 'settings',
-              label: 'Developer Tools',
-              color: COLORS.accent,
-              onPress: () => navigation.navigate('Debug'),
-            },
-          ]}
-        />
-
-        {/* Other Section */}
-        <ProfileSection
-          title="OTHER"
-          items={[
-            { icon: 'help-circle', label: 'Help & Support', onPress: () => {} },
-            { icon: 'info', label: 'About', onPress: () => {} },
-            {
-              icon: 'log-out',
-              label: 'Logout',
-              color: COLORS.light.error,
-              onPress: handleLogout,
-            },
+            { icon: 'book-open', label: 'My Materials', onPress: () => {} },
+            { icon: 'users', label: 'My Connections', onPress: () => {} },
+            { icon: 'award', label: 'Achievements', onPress: () => {} },
           ]}
         />
       </ScrollView>

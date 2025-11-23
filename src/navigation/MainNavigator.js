@@ -11,6 +11,7 @@ import PeerMatchScreen from '../screens/main/PeerMatchScreen';
 import StudyGroupsScreen from '../screens/main/StudyGroupsScreen';
 import FavouritesScreen from '../screens/main/FavouritesScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
+import SettingsScreen from '../screens/main/SettingsScreen';
 import DetailsScreen from '../screens/main/DetailsScreen';
 import DebugScreen from '../screens/main/DebugScreen';
 
@@ -38,13 +39,13 @@ const HomeStack = () => {
   );
 };
 
-// Profile Stack
-const ProfileStack = () => {
+// Settings Stack
+const SettingsStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="ProfileMain"
-        component={ProfileScreen}
+        name="SettingsMain"
+        component={SettingsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -95,11 +96,11 @@ const MainNavigator = () => {
             case 'StudyGroups':
               iconName = 'message-circle';
               break;
-            case 'Favourites':
-              iconName = 'heart';
-              break;
             case 'Profile':
               iconName = 'user';
+              break;
+            case 'Settings':
+              iconName = 'settings';
               break;
             default:
               iconName = 'circle';
@@ -130,14 +131,14 @@ const MainNavigator = () => {
         options={{ title: 'Groups' }}
       />
       <Tab.Screen
-        name="Favourites"
-        component={FavouritesScreen}
-        options={{ title: 'Favourites' }}
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: 'Profile' }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileStack}
-        options={{ title: 'Profile', headerShown: false }}
+        name="Settings"
+        component={SettingsStack}
+        options={{ title: 'Settings', headerShown: false }}
       />
     </Tab.Navigator>
   );
