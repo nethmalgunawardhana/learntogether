@@ -209,7 +209,7 @@ const StudyGroupsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { padding: SIZES.padding, alignItems: 'flex-end' },
+  header: { padding: SIZES.padding, paddingTop: 80, alignItems: 'flex-end' },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',

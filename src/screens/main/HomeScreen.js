@@ -116,6 +116,12 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.iconButton}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Feather name="user" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton}
               onPress={() => setSettingsVisible(true)}
             >
               <Feather name="settings" size={24} color={COLORS.primary} />
@@ -142,24 +148,6 @@ const HomeScreen = ({ navigation }) => {
           >
             <Feather name="sliders" size={20} color="white" />
           </TouchableOpacity>
-        </View>
-
-        {/* Promo Banner */}
-        <View style={styles.promoBanner}>
-          <View style={styles.promoContent}>
-            <Text style={styles.promoTag}>50% OFF*</Text>
-            <Text style={styles.promoTitle}>Today's promo</Text>
-            <Text style={styles.promoDescription}>
-              Get a Discount for Every{'\n'}
-              Course Order only Valid for{'\n'}
-              3 days!
-            </Text>
-          </View>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop' }}
-            style={styles.promoImage}
-            resizeMode="cover"
-          />
         </View>
 
         {/* Popular Study Materials Section */}
@@ -284,41 +272,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  promoBanner: {
-    backgroundColor: '#3D3581',
-    marginHorizontal: SIZES.padding,
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  promoContent: {
-    flex: 1,
-  },
-  promoTag: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  promoTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  promoDescription: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  promoImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
+  Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +20,8 @@ const SettingsScreen = ({ navigation, onClose }) => {
   const { mode } = useSelector((state) => state.theme);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
+
+  const [activeModal, setActiveModal] = React.useState(null);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -83,7 +86,6 @@ const SettingsScreen = ({ navigation, onClose }) => {
       {/* Close button when in modal */}
       {onClose && (
         <View style={[styles.modalHeader, { backgroundColor: themeColors.card, borderBottomColor: themeColors.border }]}>
-          <Text style={[styles.modalTitle, { color: themeColors.text }]}>Settings</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Feather name="x" size={24} color={themeColors.text} />
           </TouchableOpacity>
@@ -124,33 +126,7 @@ const SettingsScreen = ({ navigation, onClose }) => {
           ]}
         />
 
-        {/* Notifications Section */}
-        <SettingsSection
-          title="NOTIFICATIONS"
-          items={[
-            {
-              icon: 'bell',
-              iconColor: COLORS.primary,
-              label: 'Push Notifications',
-              description: 'Receive updates and alerts',
-              onPress: () => {},
-            },
-            {
-              icon: 'mail',
-              iconColor: COLORS.accent,
-              label: 'Email Notifications',
-              description: 'Get email updates',
-              onPress: () => {},
-            },
-            {
-              icon: 'message-circle',
-              iconColor: COLORS.secondary,
-              label: 'Study Group Messages',
-              description: 'Notifications from your groups',
-              onPress: () => {},
-            },
-          ]}
-        />
+       
 
         {/* Privacy & Security Section */}
         <SettingsSection
@@ -185,20 +161,6 @@ const SettingsScreen = ({ navigation, onClose }) => {
           title="DATA & STORAGE"
           items={[
             {
-              icon: 'download',
-              iconColor: COLORS.primary,
-              label: 'Download Settings',
-              description: 'Manage auto-download preferences',
-              onPress: () => {},
-            },
-            {
-              icon: 'database',
-              iconColor: COLORS.accent,
-              label: 'Clear Cache',
-              description: 'Free up storage space',
-              onPress: () => {},
-            },
-            {
               icon: 'hard-drive',
               iconColor: COLORS.secondary,
               label: 'Storage Usage',
@@ -225,33 +187,19 @@ const SettingsScreen = ({ navigation, onClose }) => {
               icon: 'file-text',
               iconColor: COLORS.accent,
               label: 'Terms of Service',
-              onPress: () => {},
+              onPress: () => setActiveModal('terms'),
             },
             {
               icon: 'shield',
               iconColor: COLORS.secondary,
               label: 'Privacy Policy',
-              onPress: () => {},
+              onPress: () => setActiveModal('privacy'),
             },
             {
               icon: 'help-circle',
               iconColor: COLORS.primary,
               label: 'Help & Support',
-              onPress: () => {},
-            },
-          ]}
-        />
-
-        {/* Developer Tools Section (shown for development) */}
-        <SettingsSection
-          title="DEVELOPER"
-          items={[
-            {
-              icon: 'code',
-              iconColor: COLORS.accent,
-              label: 'Developer Tools',
-              description: 'Seed data and debug options',
-              onPress: () => navigation?.navigate('Debug'),
+              onPress: () => setActiveModal('help'),
             },
           ]}
         />
@@ -276,11 +224,126 @@ const SettingsScreen = ({ navigation, onClose }) => {
           <Text style={[styles.footerText, { color: themeColors.textSecondary }]}>
             LearnTogether v1.0.0
           </Text>
-          <Text style={[styles.footerText, { color: themeColors.textSecondary }]}>
-            Made with ❤️ for students
-          </Text>
         </View>
       </ScrollView>
+
+      {/* Modal Popups */}
+      <Modal
+        visible={activeModal === 'terms'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader2}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Terms of Service</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Feather name="x" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <Text style={[styles.modalText, { color: themeColors.text }]}>
+                <Text style={{ fontWeight: 'bold' }}>1. Acceptance of Terms{'\n\n'}</Text>
+                By using the Learn Together app, you agree to these terms and conditions.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>2. User Responsibilities{'\n\n'}</Text>
+                You are responsible for maintaining the confidentiality of your account information and password.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>3. Content Rights{'\n\n'}</Text>
+                You retain all rights to content you create. By sharing on Learn Together, you grant us permission to display your content to other users.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>4. Prohibited Activities{'\n\n'}</Text>
+                Users may not engage in harassment, spam, or any illegal activities on the platform.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>5. Liability Limitation{'\n\n'}</Text>
+                Learn Together is provided "as is" without any warranties or guarantees.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>6. Changes to Terms{'\n\n'}</Text>
+                We reserve the right to modify these terms at any time. Your continued use of the app constitutes acceptance of any changes.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={activeModal === 'privacy'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader2}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Privacy Policy</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Feather name="x" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <Text style={[styles.modalText, { color: themeColors.text }]}>
+                <Text style={{ fontWeight: 'bold' }}>1. Information We Collect{'\n\n'}</Text>
+                We collect information you provide directly such as email, name, and profile data. We also collect usage information through analytics.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>2. How We Use Your Data{'\n\n'}</Text>
+                Your data is used to provide services, improve the app, and communicate important updates.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>3. Data Security{'\n\n'}</Text>
+                We implement industry-standard security measures to protect your personal information from unauthorized access.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>4. Third-Party Services{'\n\n'}</Text>
+                We may use third-party services for analytics and cloud storage. These services have their own privacy policies.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>5. Your Rights{'\n\n'}</Text>
+                You have the right to access, modify, or delete your personal data at any time.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>6. Contact Us{'\n\n'}</Text>
+                If you have privacy concerns, please contact us at privacy@learntogether.app
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={activeModal === 'help'}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+            <View style={styles.modalHeader2}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Help & Support</Text>
+              <TouchableOpacity onPress={() => setActiveModal(null)}>
+                <Feather name="x" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <Text style={[styles.modalText, { color: themeColors.text }]}>
+                <Text style={{ fontWeight: 'bold' }}>Getting Started{'\n\n'}</Text>
+                Learn Together connects students with similar study interests. Create your profile, specify your subjects, and start finding study partners!{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>Finding Peers{'\n\n'}</Text>
+                Use the "Find Peers" tab to discover study partners based on shared subjects and learning goals.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>Creating Study Groups{'\n\n'}</Text>
+                Visit the "Groups" tab to join or create study groups with your peers.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>Sharing Materials{'\n\n'}</Text>
+                Upload notes, questions, and study materials on the Home screen to share with your study community.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>Account Issues{'\n\n'}</Text>
+                If you're having trouble logging in or accessing your account, try resetting your password or contact support.{'\n\n'}
+
+                <Text style={{ fontWeight: 'bold' }}>Contact Support{'\n\n'}</Text>
+                For additional help, reach out to us at support@learntogether.app or visit our help center.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -297,10 +360,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 15,
     borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: SIZES.h4,
-    fontWeight: 'bold',
   },
   closeButton: {
     padding: 8,
@@ -389,6 +448,39 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: SIZES.caption,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...SHADOWS.light,
+  },
+  modalHeader2: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: SIZES.padding,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalTitle: {
+    fontSize: SIZES.h5,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  modalBody: {
+    padding: SIZES.padding,
+  },
+  modalText: {
+    fontSize: SIZES.body,
+    lineHeight: 24,
   },
 });
 

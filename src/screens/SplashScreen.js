@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../constants';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,37 +22,38 @@ const SplashScreen = ({ navigation }) => {
       colors={['#4A4399', '#3D3581', '#2E2868']}
       style={styles.container}
     >
-      {/* Header Text */}
-      <Text style={styles.headerText}>PING INTELLIGENCE</Text>
+      {/* Book Icon - Top Logo */}
+      <View style={styles.topIconContainer}>
+        <Ionicons name="book" size={160} color="white" />
+        
+      </View>
 
       {/* Logo Area */}
       <View style={styles.logoContainer}>
-        {/* Stacked Layers Icon */}
-        <View style={styles.layersContainer}>
-          <View style={[styles.layer, styles.layer1]} />
-          <View style={[styles.layer, styles.layer2]} />
-          <View style={[styles.layer, styles.layer3]} />
-        </View>
-
-        {/* Curved Wave Background */}
-        <View style={styles.waveContainer}>
-          <View style={styles.wave} />
-          
-          {/* Percentage Badge */}
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>94%</Text>
+        <View style={styles.featureBadgesContainer}>
+          <View style={styles.featureBadge}>
+            <Ionicons name="book" size={16} color={COLORS.primary} />
+            <Text style={styles.featureText}>Learn</Text>
+          </View>
+          <View style={styles.featureBadge}>
+            <Ionicons name="people" size={16} color={COLORS.secondary} />
+            <Text style={styles.featureText}>Connect</Text>
+          </View>
+          <View style={styles.featureBadge}>
+            <Ionicons name="trophy" size={16} color={COLORS.accent} />
+            <Text style={styles.featureText}>Grow</Text>
           </View>
         </View>
       </View>
 
       {/* Content Area */}
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>Welcome to the online{'\n'}E-Learning App</Text>
+        <Text style={styles.title}>Learn Together</Text>
         
         <Text style={styles.description}>
-          Lorem ipsum dolor sit amet, consectetur{'\n'}
-          adipiscing elit, sed do eiusmod tempor{'\n'}
-          incididunt ut.
+          Connect with peers, share knowledge,{'\n'}
+          and grow together through collaborative{'\n'}
+          learning and study groups
         </Text>
 
         {/* Start Learning Button */}
@@ -60,7 +62,7 @@ const SplashScreen = ({ navigation }) => {
           onPress={handleStartLearning}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Start Learning...</Text>
+          <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -72,12 +74,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  headerText: {
-    color: '#A0A0C0',
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: 2,
-    marginTop: 60,
+  topIconContainer: {
+    alignItems: 'center',
+    paddingTop: 180,
+    marginBottom: 40,
+  },
+  taglineText: {
+    color: 'white',
+    fontSize: 40,
+    fontWeight: '600',
+    letterSpacing: 1,
+    marginTop: 16,
   },
   logoContainer: {
     flex: 1,
@@ -85,71 +92,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: width,
   },
-  layersContainer: {
-    width: 120,
-    height: 120,
-    justifyContent: 'center',
+  featureBadgesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: width * 0.8,
+    marginTop: 40,
+    paddingHorizontal: 20,
+  },
+  featureBadge: {
     alignItems: 'center',
-    marginBottom: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  layer: {
-    position: 'absolute',
-    width: 90,
-    height: 30,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    transform: [{ perspective: 400 }],
-  },
-  layer1: {
-    top: 0,
-    opacity: 1,
-    transform: [{ perspective: 400 }, { rotateX: '-10deg' }],
-  },
-  layer2: {
-    top: 30,
-    opacity: 0.9,
-  },
-  layer3: {
-    top: 60,
-    opacity: 0.8,
-    transform: [{ perspective: 400 }, { rotateX: '10deg' }],
-  },
-  waveContainer: {
-    width: width,
-    height: height * 0.5,
-    position: 'relative',
-  },
-  wave: {
-    width: width,
-    height: height * 0.5,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: width,
-    borderTopRightRadius: width,
-    transform: [{ scaleX: 2 }],
-  },
-  badge: {
-    position: 'absolute',
-    top: 20,
-    right: width * 0.15,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#4A4FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4A4FFF',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  badgeText: {
+  featureText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 6,
   },
   contentContainer: {
     position: 'absolute',
@@ -162,19 +125,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#4A4399',
     textAlign: 'center',
     marginBottom: 20,
-    lineHeight: 32,
   },
   description: {
     fontSize: 14,
-    color: '#888',
+    color: '#666',
     textAlign: 'center',
     marginBottom: 40,
-    lineHeight: 20,
+    lineHeight: 22,
+    fontWeight: '500',
   },
   button: {
     backgroundColor: '#2E2868',

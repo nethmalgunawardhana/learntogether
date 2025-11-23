@@ -56,14 +56,14 @@ export const registerUser = async (email, password, username, profile = {}) => {
 
 /**
  * Sign in user with username and password using DummyJSON API
- * @param {string} email - User's email (will use as username)
+ * @param {string} email - User's email or username (DummyJSON accepts username)
  * @param {string} password - User's password
  * @returns {Promise<Object>} User data
  */
 export const loginUser = async (email, password) => {
   try {
-    // DummyJSON uses username for login, not email
-    // For demo purposes, we'll extract username from email or use test credentials
+    // DummyJSON uses username for login
+    // Accept both email format and plain username
     const username = email.includes('@') ? email.split('@')[0] : email;
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -72,8 +72,8 @@ export const loginUser = async (email, password) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        username: username,
-        password: password,
+        username: username.trim(),
+        password: password.trim(),
         expiresInMins: 60,
       }),
     });
@@ -81,7 +81,11 @@ export const loginUser = async (email, password) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Invalid credentials');
+      // Provide helpful error messages
+      if (response.status === 401) {
+        throw new Error('Invalid username or password. Try: emilys / emilyspass');
+      }
+      throw new Error(data.message || 'Login failed. Please check your credentials.');
     }
 
     // Transform DummyJSON user data to our app's format
