@@ -182,6 +182,213 @@ export const addReactionToMessage = createAsyncThunk(
   }
 );
 
+// Material enhancements
+export const rateMaterial = createAsyncThunk(
+  'studyGroups/rateMaterial',
+  async ({ groupId, materialId, rating, userId }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            materials: (group.materials || []).map(mat => {
+              if (mat.id === materialId) {
+                const ratings = mat.ratings || {};
+                ratings[userId] = rating;
+                const ratingsArray = Object.values(ratings);
+                const averageRating = ratingsArray.reduce((a, b) => a + b, 0) / ratingsArray.length;
+                return { ...mat, ratings, averageRating, totalRatings: ratingsArray.length };
+              }
+              return mat;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, materialId, rating, userId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const incrementMaterialView = createAsyncThunk(
+  'studyGroups/incrementMaterialView',
+  async ({ groupId, materialId }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            materials: (group.materials || []).map(mat => {
+              if (mat.id === materialId) {
+                return { ...mat, views: (mat.views || 0) + 1 };
+              }
+              return mat;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, materialId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const togglePinMaterial = createAsyncThunk(
+  'studyGroups/togglePinMaterial',
+  async ({ groupId, materialId }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            materials: (group.materials || []).map(mat => {
+              if (mat.id === materialId) {
+                return { ...mat, pinned: !mat.pinned };
+              }
+              return mat;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, materialId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Q&A enhancements
+export const voteAnswer = createAsyncThunk(
+  'studyGroups/voteAnswer',
+  async ({ groupId, questionId, answerId, voteType, userId }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            questions: (group.questions || []).map(q => {
+              if (q.id === questionId) {
+                return {
+                  ...q,
+                  answers: (q.answers || []).map(ans => {
+                    if (ans.id === answerId) {
+                      const upvotes = ans.upvotes || [];
+                      const downvotes = ans.downvotes || [];
+                      
+                      let newUpvotes = [...upvotes];
+                      let newDownvotes = [...downvotes];
+
+                      if (voteType === 'up') {
+                        if (upvotes.includes(userId)) {
+                          newUpvotes = upvotes.filter(id => id !== userId);
+                        } else {
+                          newUpvotes = [...upvotes, userId];
+                          newDownvotes = downvotes.filter(id => id !== userId);
+                        }
+                      } else if (voteType === 'down') {
+                        if (downvotes.includes(userId)) {
+                          newDownvotes = downvotes.filter(id => id !== userId);
+                        } else {
+                          newDownvotes = [...downvotes, userId];
+                          newUpvotes = upvotes.filter(id => id !== userId);
+                        }
+                      }
+
+                      return {
+                        ...ans,
+                        upvotes: newUpvotes,
+                        downvotes: newDownvotes,
+                        score: newUpvotes.length - newDownvotes.length
+                      };
+                    }
+                    return ans;
+                  }),
+                };
+              }
+              return q;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, questionId, answerId, voteType, userId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const markAnswerAsAccepted = createAsyncThunk(
+  'studyGroups/markAnswerAsAccepted',
+  async ({ groupId, questionId, answerId }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            questions: (group.questions || []).map(q => {
+              if (q.id === questionId) {
+                return {
+                  ...q,
+                  acceptedAnswerId: q.acceptedAnswerId === answerId ? null : answerId,
+                  status: q.acceptedAnswerId === answerId ? 'open' : 'answered',
+                };
+              }
+              return q;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, questionId, answerId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const updateQuestionStatus = createAsyncThunk(
+  'studyGroups/updateQuestionStatus',
+  async ({ groupId, questionId, status }, { getState, rejectWithValue }) => {
+    try {
+      const { studyGroups } = getState().studyGroups;
+      const updatedGroups = studyGroups.map(group => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            questions: (group.questions || []).map(q => {
+              if (q.id === questionId) {
+                return { ...q, status };
+              }
+              return q;
+            }),
+          };
+        }
+        return group;
+      });
+      await AsyncStorage.setItem(STUDY_GROUPS_KEY, JSON.stringify(updatedGroups));
+      return { groupId, questionId, status };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   studyGroups: [],
@@ -283,6 +490,106 @@ const studyGroupsSlice = createSlice({
               reactions[emoji] = updatedEmojiReactions;
             }
             message.reactions = reactions;
+          }
+        }
+      })
+      // Rate material
+      .addCase(rateMaterial.fulfilled, (state, action) => {
+        const { groupId, materialId, rating, userId } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const material = group.materials?.find(m => m.id === materialId);
+          if (material) {
+            const ratings = material.ratings || {};
+            ratings[userId] = rating;
+            const ratingsArray = Object.values(ratings);
+            const averageRating = ratingsArray.reduce((a, b) => a + b, 0) / ratingsArray.length;
+            material.ratings = ratings;
+            material.averageRating = averageRating;
+            material.totalRatings = ratingsArray.length;
+          }
+        }
+      })
+      // Increment material view
+      .addCase(incrementMaterialView.fulfilled, (state, action) => {
+        const { groupId, materialId } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const material = group.materials?.find(m => m.id === materialId);
+          if (material) {
+            material.views = (material.views || 0) + 1;
+          }
+        }
+      })
+      // Toggle pin material
+      .addCase(togglePinMaterial.fulfilled, (state, action) => {
+        const { groupId, materialId } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const material = group.materials?.find(m => m.id === materialId);
+          if (material) {
+            material.pinned = !material.pinned;
+          }
+        }
+      })
+      // Vote answer
+      .addCase(voteAnswer.fulfilled, (state, action) => {
+        const { groupId, questionId, answerId, voteType, userId } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const question = group.questions?.find(q => q.id === questionId);
+          if (question) {
+            const answer = question.answers?.find(a => a.id === answerId);
+            if (answer) {
+              const upvotes = answer.upvotes || [];
+              const downvotes = answer.downvotes || [];
+              
+              let newUpvotes = [...upvotes];
+              let newDownvotes = [...downvotes];
+
+              if (voteType === 'up') {
+                if (upvotes.includes(userId)) {
+                  newUpvotes = upvotes.filter(id => id !== userId);
+                } else {
+                  newUpvotes = [...upvotes, userId];
+                  newDownvotes = downvotes.filter(id => id !== userId);
+                }
+              } else if (voteType === 'down') {
+                if (downvotes.includes(userId)) {
+                  newDownvotes = downvotes.filter(id => id !== userId);
+                } else {
+                  newDownvotes = [...downvotes, userId];
+                  newUpvotes = upvotes.filter(id => id !== userId);
+                }
+              }
+
+              answer.upvotes = newUpvotes;
+              answer.downvotes = newDownvotes;
+              answer.score = newUpvotes.length - newDownvotes.length;
+            }
+          }
+        }
+      })
+      // Mark answer as accepted
+      .addCase(markAnswerAsAccepted.fulfilled, (state, action) => {
+        const { groupId, questionId, answerId } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const question = group.questions?.find(q => q.id === questionId);
+          if (question) {
+            question.acceptedAnswerId = question.acceptedAnswerId === answerId ? null : answerId;
+            question.status = question.acceptedAnswerId === answerId ? 'open' : 'answered';
+          }
+        }
+      })
+      // Update question status
+      .addCase(updateQuestionStatus.fulfilled, (state, action) => {
+        const { groupId, questionId, status } = action.payload;
+        const group = state.studyGroups.find(g => g.id === groupId);
+        if (group) {
+          const question = group.questions?.find(q => q.id === questionId);
+          if (question) {
+            question.status = status;
           }
         }
       });
