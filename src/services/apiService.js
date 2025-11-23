@@ -293,3 +293,136 @@ export const subscribeToCollection = (collectionName, callback, constraints = {}
     throw error;
   }
 };
+
+/**
+ * Search books using Open Library API
+ * @param {string} query - Search query
+ * @param {number} limit - Number of results to return
+ * @returns {Promise<Array>} Array of books
+ */
+export const searchBooks = async (query, limit = 20) => {
+  try {
+    const response = await fetch(
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}`
+    );
+    const data = await response.json();
+
+    // Transform to our format
+    const books = data.docs.map(book => ({
+      id: book.key,
+      title: book.title,
+      author: book.author_name?.[0] || 'Unknown Author',
+      subject: book.subject?.[0] || 'General',
+      coverUrl: book.cover_i 
+        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
+        : null,
+      isbn: book.isbn?.[0],
+      publishYear: book.first_publish_year,
+      description: book.first_sentence?.[0] || 'No description available',
+    }));
+
+    return books.filter(book => book.coverUrl); // Only return books with covers
+  } catch (error) {
+    console.error('Error searching books:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get popular books by subject
+ * @param {string} subject - Subject/category
+ * @param {number} limit - Number of results
+ * @returns {Promise<Array>} Array of books
+ */
+export const getBooksBySubject = async (subject, limit = 20) => {
+  try {
+    const response = await fetch(
+      `https://openlibrary.org/subjects/${subject.toLowerCase()}.json?limit=${limit}`
+    );
+    const data = await response.json();
+
+    const books = data.works.map(work => ({
+      id: work.key,
+      title: work.title,
+      author: work.authors?.[0]?.name || 'Unknown Author',
+      subject: subject,
+      coverUrl: work.cover_id
+        ? `https://covers.openlibrary.org/b/id/${work.cover_id}-M.jpg`
+        : null,
+      description: work.first_sentence || 'No description available',
+    }));
+
+    return books.filter(book => book.coverUrl);
+  } catch (error) {
+    console.error('Error fetching books by subject:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get detailed book information including description and ratings
+ * @param {string} bookKey - Book key (e.g., "/works/OL45804W")
+ * @returns {Promise<Object>} Detailed book information
+ */
+export const getBookDetails = async (bookKey) => {
+  try {
+    // Fetch work details
+    const workResponse = await fetch(`https://openlibrary.org${bookKey}.json`);
+    const workData = await workResponse.json();
+
+    // Fetch ratings
+    const ratingsResponse = await fetch(`https://openlibrary.org${bookKey}/ratings.json`);
+    const ratingsData = await ratingsResponse.json();
+
+    // Extract description (can be string or object)
+    let description = 'No description available';
+    if (workData.description) {
+      if (typeof workData.description === 'string') {
+        description = workData.description;
+      } else if (workData.description.value) {
+        description = workData.description.value;
+      }
+    }
+
+    // Get cover ID from covers array
+    const coverId = workData.covers?.[0];
+
+    return {
+      id: workData.key,
+      title: workData.title,
+      description: description,
+      coverUrl: coverId
+        ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
+        : null,
+      subjects: workData.subjects || [],
+      subject: workData.subjects?.[0] || 'General',
+      author: workData.authors?.[0]?.author?.key || 'Unknown',
+      firstPublishDate: workData.first_publish_date,
+      // Ratings data
+      averageRating: ratingsData.summary?.average || 0,
+      ratingsCount: ratingsData.summary?.count || 0,
+      // Additional metadata
+      links: workData.links || [],
+      excerpts: workData.excerpts || [],
+    };
+  } catch (error) {
+    console.error('Error fetching book details:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get author name by author key
+ * @param {string} authorKey - Author key (e.g., "/authors/OL34184A")
+ * @returns {Promise<string>} Author name
+ */
+export const getAuthorName = async (authorKey) => {
+  try {
+    const response = await fetch(`https://openlibrary.org${authorKey}.json`);
+    const data = await response.json();
+    return data.name || 'Unknown Author';
+  } catch (error) {
+    console.error('Error fetching author:', error);
+    return 'Unknown Author';
+  }
+};
