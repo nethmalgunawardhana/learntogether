@@ -8,58 +8,37 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Feather } from '@expo/vector-icons';
 import { COLORS, SIZES, SHADOWS } from '../../constants';
-import { seedAllData, seedStudyMaterials, seedStudyGroups, clearAllData } from '../../services/seedData';
+import { fetchMaterials } from '../../store/slices/materialsSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DebugScreen = () => {
+  const dispatch = useDispatch();
   const { mode } = useSelector((state) => state.theme);
   const { materials } = useSelector((state) => state.materials);
+  const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const isDark = mode === 'dark';
   const themeColors = isDark ? COLORS.dark : COLORS.light;
 
-  const handleSeedAll = async () => {
+  const handleRefreshData = async () => {
     try {
       setLoading(true);
-      const result = await seedAllData();
-      Alert.alert('Success', result.message);
+      await dispatch(fetchMaterials()).unwrap();
+      Alert.alert('Success', 'Data refreshed from DummyJSON API');
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to seed data');
+      Alert.alert('Error', error.message || 'Failed to refresh data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSeedMaterials = async () => {
-    try {
-      setLoading(true);
-      const result = await seedStudyMaterials();
-      Alert.alert('Success', result.message);
-    } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to seed materials');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSeedGroups = async () => {
-    try {
-      setLoading(true);
-      const result = await seedStudyGroups();
-      Alert.alert('Success', result.message);
-    } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to seed groups');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClearAll = () => {
+  const handleClearCache = async () => {
     Alert.alert(
-      'Clear All Data',
-      'Are you sure you want to clear all data? This action cannot be undone.',
+      'Clear Local Cache',
+      'This will clear all locally stored data (auth tokens, cached data). You will need to login again.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -68,10 +47,10 @@ const DebugScreen = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              const result = await clearAllData();
-              Alert.alert('Success', result.message);
+              await AsyncStorage.clear();
+              Alert.alert('Success', 'Local cache cleared. Please restart the app.');
             } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to clear data');
+              Alert.alert('Error', 'Failed to clear cache');
             } finally {
               setLoading(false);
             }
@@ -79,6 +58,19 @@ const DebugScreen = () => {
         },
       ]
     );
+  };
+
+  const handleTestAPIConnection = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('https://dummyjson.com/test');
+      const data = await response.json();
+      Alert.alert('API Status', `Connected to DummyJSON API\n\nStatus: ${data.status || 'OK'}`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to connect to API');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderButton = (title, icon, onPress, color = COLORS.primary, disabled = false) => (
@@ -122,24 +114,23 @@ const DebugScreen = () => {
             Development Tools
           </Text>
           <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>
-            Seed and manage Firestore data
+            DummyJSON API & Debug Tools
           </Text>
         </View>
 
         {/* Stats */}
         <View style={styles.statsContainer}>
           {renderInfoCard('Materials', materials.length, 'book', COLORS.primary)}
-          {renderInfoCard('Status', 'Connected', 'database', COLORS.accent)}
+          {renderInfoCard('User', user ? 'Logged In' : 'Guest', 'user', COLORS.accent)}
         </View>
 
-        {/* Actions */}
+        {/* API Actions */}
         <View style={[styles.section, { backgroundColor: themeColors.card }]}>
           <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-            Seed Data
+            API Actions
           </Text>
-          {renderButton('Seed All Data', 'database', handleSeedAll, COLORS.primary)}
-          {renderButton('Seed Study Materials', 'book', handleSeedMaterials, COLORS.primary)}
-          {renderButton('Seed Study Groups', 'users', handleSeedGroups, COLORS.accent)}
+          {renderButton('Refresh Data from API', 'refresh-cw', handleRefreshData, COLORS.primary)}
+          {renderButton('Test API Connection', 'wifi', handleTestAPIConnection, COLORS.accent)}
         </View>
 
         {/* Danger Zone */}
@@ -147,7 +138,7 @@ const DebugScreen = () => {
           <Text style={[styles.sectionTitle, { color: COLORS.error }]}>
             Danger Zone
           </Text>
-          {renderButton('Clear All Data', 'trash-2', handleClearAll, COLORS.error)}
+          {renderButton('Clear Local Cache', 'trash-2', handleClearCache, COLORS.error)}
         </View>
 
         {/* Loading Indicator */}
@@ -164,7 +155,7 @@ const DebugScreen = () => {
         <View style={styles.infoSection}>
           <Feather name="info" size={16} color={themeColors.textSecondary} />
           <Text style={[styles.infoText, { color: themeColors.textSecondary }]}>
-            These tools are for development purposes only. Use seed data to populate your Firestore database with sample content.
+            These tools are for development and testing. Data is fetched from DummyJSON API. Clear cache will log you out.
           </Text>
         </View>
       </ScrollView>
