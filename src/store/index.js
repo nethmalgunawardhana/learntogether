@@ -3,6 +3,8 @@ import authReducer from './slices/authSlice';
 import materialsReducer from './slices/materialsSlice';
 import favouritesReducer from './slices/favouritesSlice';
 import themeReducer from './slices/themeSlice';
+import connectionsReducer from './slices/connectionsSlice';
+import studyGroupsReducer from './slices/studyGroupsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +12,8 @@ export const store = configureStore({
     materials: materialsReducer,
     favourites: favouritesReducer,
     theme: themeReducer,
+    connections: connectionsReducer,
+    studyGroups: studyGroupsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

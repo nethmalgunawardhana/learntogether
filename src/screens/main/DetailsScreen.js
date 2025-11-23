@@ -210,32 +210,6 @@ const DetailsScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        {/* Stats */}
-        <View style={[styles.statsContainer, { backgroundColor: themeColors.card }]}>
-          <View style={styles.statItem}>
-            <Feather name="heart" size={20} color={COLORS.primary} />
-            <Text style={[styles.statValue, { color: themeColors.text }]}>
-              {displayMaterial.likes || 0}
-            </Text>
-            <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>
-              Likes
-            </Text>
-          </View>
-          {displayMaterial.createdAt && (
-            <View style={styles.statItem}>
-              <Feather name="calendar" size={20} color={COLORS.secondary} />
-              <Text
-                style={[styles.statValue, { color: themeColors.text, fontSize: 12 }]}
-              >
-                {formatDate(displayMaterial.createdAt)}
-              </Text>
-              <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>
-                Created
-              </Text>
-            </View>
-          )}
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actionContainer}>
           <TouchableOpacity
